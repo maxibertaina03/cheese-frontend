@@ -35,6 +35,23 @@ interface Unidad {
   observacionesIngreso: string | null;
 }
 
+interface Motivo {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+}
+
+interface Unidad {
+  id: number;
+  producto: Producto;
+  pesoInicial: number;
+  pesoActual: number;
+  activa: boolean;
+  particiones: Particion[];
+  createdAt: string;
+  observacionesIngreso: string | null;
+  motivo: Motivo; // ✅ agregado
+}
 
 
   const Login = ({ onLogin }: { onLogin: (user: { token: string; rol: 'admin' | 'usuario' }) => void }) => {
@@ -125,6 +142,12 @@ function App() {
   const [fechaFin, setFechaFin] = useState('');
   const [tipoQuesoFiltro, setTipoQuesoFiltro] = useState<string>('todos');
   const [precios, setPrecios] = useState<Record<number, number>>({}); // productoId -> precio
+
+  //estados de motivos
+  const [motivos, setMotivos] = useState<Motivo[]>([]);
+  const [motivoIngresoId, setMotivoIngresoId] = useState<number | null>(null);
+  const [motivoCorteId, setMotivoCorteId] = useState<number | null>(null);
+
   
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -135,11 +158,21 @@ function App() {
     }
   }, [user, dataLoaded]);
 
+  const fetchMotivos = async () => {
+  try {
+    const response = await apiFetch(`${API_URL}/api/motivos`);
+    const data = await response.json();
+    setMotivos(data);
+  } catch (error) {
+    console.error('Error al cargar motivos:', error);
+  }
+  };
   const fetchData = async () => {
     await Promise.all([
       fetchUnidades(),
       fetchProductos(),
-      fetchTiposQueso()
+      fetchTiposQueso(),
+      fetchMotivos()
     ]);
   };
 
@@ -331,6 +364,12 @@ function App() {
   };
 
   const handleSubmit = async () => {
+    
+    if (!motivoIngresoId) {
+    setError('Debe seleccionar un motivo de ingreso');
+    return;
+    }
+
     if (!codigoBarras || codigoBarras.length !== 13) {
       setError('Ingrese un código de barras válido de 13 dígitos');
       return;
@@ -349,6 +388,7 @@ function App() {
           productoId: resultado.producto.id,
           pesoInicial: resultado.peso,
           observacionesIngreso: observacionesIngreso || null,
+          motivoId: motivoIngresoId || null,
         }),
       });
 
@@ -405,6 +445,7 @@ function App() {
         body: JSON.stringify({
           peso: peso,
           observacionesCorte: observacionesCorte || 'Corte sin observaciones',
+          motivoId: motivoCorteId || null,
         }),
       });
 
@@ -451,6 +492,7 @@ function App() {
         body: JSON.stringify({
           peso: pesoTotal, // ✅ Enviamos el peso total directamente
           observacionesCorte: 'Corte final – queso agotado',
+          motivoId: motivoCorteId || null,
         }),
       });
 
@@ -565,7 +607,12 @@ function App() {
             <span className={`badge ${unidad.activa ? 'badge-status' : 'badge-inactive'}`}>
               {unidad.activa ? 'Activa' : 'Agotada'}
             </span>
-            
+            {unidad.motivo && (
+            <div className="observaciones-section">
+              <div className="observaciones-title">Motivo de Ingreso</div>
+              <div className="observaciones-content">{unidad.motivo.nombre}</div>
+            </div>
+            )}
             {/* Mostrar stock actual solo en historial */}
             {isHistorial && (
               <span className="badge" style={{ background: '#e0e7ff', color: '#4338ca' }}>
@@ -659,6 +706,7 @@ function App() {
                 <div className="partition-date">{formatDate(particion.createdAt)}</div>
                 {particion.observacionesCorte && (
                   <div className="partition-observaciones">{particion.observacionesCorte}</div>
+
                 )}
               </div>
             ))}
@@ -978,6 +1026,22 @@ const EditModal = ({ unidad, onClose, onSave }: {
                     rows={3}
                   />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Motivo de Ingreso *</label>
+                  <select
+                    className="form-select"
+                    value={motivoIngresoId || ''}
+                    onChange={(e) => setMotivoIngresoId(Number(e.target.value))}
+                    required
+                  >
+                    <option value="">-- Seleccionar motivo --</option>
+                    {motivos.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
           </div>
@@ -1095,6 +1159,23 @@ const EditModal = ({ unidad, onClose, onSave }: {
                   placeholder="Ej: Cliente: Juan Pérez, Pedido especial, etc."
                   rows={3}
                 />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">Motivo del corte *</label>
+                <select
+                  className="form-select"
+                  value={motivoCorteId || ''}
+                  onChange={(e) => setMotivoCorteId(Number(e.target.value))}
+                  required
+                >
+                  <option value="">-- Seleccionar motivo --</option>
+                  {motivos.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Acciones */}

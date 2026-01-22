@@ -934,5 +934,10 @@ textarea.form-input {
     color: #6b7280;
     border-left: 3px solid #f59e0b;
   }
-
+  .partition-motivo {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    font-weight: 600;
+    margin-top: 0.25rem;
+  }
 }
