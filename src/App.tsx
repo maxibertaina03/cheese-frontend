@@ -3,7 +3,13 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
-
+// Primera línea de App.tsx
+if (typeof window !== 'undefined') {
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = '<div style="padding:20px;color:green;">HTML CARGADO - ESPERANDO REACT</div>';
+  }
+}
 interface TipoQueso {
   id: number;
   nombre: string;
