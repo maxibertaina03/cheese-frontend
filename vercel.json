@@ -1,8 +1,18 @@
 {
+    "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "buildCommand": "rm -rf node_modules && npm install && npm run build"
+      }
+    }
+  ],
+  
   "rewrites": [
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/static/(.*)", "destination": "/static/$1" },
-    { "source": "/(.*)", "destination": "/" },
-    {"buildCommand": "rm -rf node_modules && npm install && npm run build"}
-  ]
+    { "source": "/(.*)", "destination": "/" }
+    ]
+
 }
