@@ -1,9 +1,12 @@
 // src/components/Modals/HistorialModal.tsx
-import React from 'react';
-import { Unidad } from '../../types';
+import React, { useState } from 'react';
+import { Unidad, User } from '../../types';
 import { UnidadCard } from '../Inventory/UnidadCard';
+import { DeleteConfirmModal } from '../Admin/DeleteConfirmModal';
+import { usePermissions } from '../../utils/permissions';
 
 interface HistorialModalProps {
+  user: User | null;
   show: boolean;
   unidades: Unidad[];
   stats: {
@@ -28,9 +31,11 @@ interface HistorialModalProps {
   getStockActual: (productoId: number) => number;
   getUnidadesAgotadas: (productoId: number) => number;
   getPesoVendido: (productoId: number) => number;
+  onDeleteUnidad?: (unidadId: number) => Promise<{ success: boolean }>;
 }
 
 export const HistorialModal: React.FC<HistorialModalProps> = ({
+  user,
   show,
   unidades,
   stats,
@@ -48,7 +53,20 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({
   getStockActual,
   getUnidadesAgotadas,
   getPesoVendido,
+  onDeleteUnidad,
 }) => {
+  const { canDelete } = usePermissions(user);
+  const [unidadEliminando, setUnidadEliminando] = useState<Unidad | null>(null);
+  
+  // NUEVO: Estado para el tipo de vista
+  const [vistaHistorial, setVistaHistorial] = useState<'lista' | 'grid'>('lista');
+
+  const handleDelete = async () => {
+    if (!unidadEliminando || !onDeleteUnidad) return;
+    await onDeleteUnidad(unidadEliminando.id);
+    setUnidadEliminando(null);
+  };
+
   if (!show) return null;
 
   return (
@@ -79,96 +97,148 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({
           </div>
           <div className="stat-card stat-card-warning">
             <div className="stat-card-value">{(stats.pesoVendido / 1000).toFixed(1)}kg</div>
-            <div className="stat-card-label">EGRESO TOTAL</div>
+            <div className="stat-card-label">Egreso Total</div>
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="historial-filters">
-          {/* Filtro por fechas */}
-          <div className="filter-group">
-            <label className="form-label">Rango de Fechas</label>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                type="date"
-                className="form-input"
-                value={fechaInicio}
-                onChange={(e) => onSetFechaInicio(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <span>hasta</span>
-              <input
-                type="date"
-                className="form-input"
-                value={fechaFin}
-                onChange={(e) => onSetFechaFin(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              {(fechaInicio || fechaFin) && (
-                <button
-                  className="btn-action"
+        {/* Panel de Filtros Mejorado */}
+        <div className="filters-panel">
+          <div className="filters-header">
+            <span className="filters-title">🔍 Filtros de Búsqueda</span>
+            <div className="filters-header-actions">
+              {/* NUEVO: Toggle de vistas */}
+              <div className="view-toggle-historial">
+                <button 
+                  className={`view-btn-historial ${vistaHistorial === 'lista' ? 'active' : ''}`}
+                  onClick={() => setVistaHistorial('lista')}
+                  title="Vista Lista"
+                >
+                  <span>☰</span>
+                  <span className="view-label">Lista</span>
+                </button>
+                <button 
+                  className={`view-btn-historial ${vistaHistorial === 'grid' ? 'active' : ''}`}
+                  onClick={() => setVistaHistorial('grid')}
+                  title="Vista Grid"
+                >
+                  <span>⊞</span>
+                  <span className="view-label">Grid</span>
+                </button>
+              </div>
+              
+              {(fechaInicio || fechaFin || busquedaHistorial || tipoQuesoFiltro !== 'todos') && (
+                <button 
+                  className="btn-clear-filters"
                   onClick={() => {
                     onSetFechaInicio('');
                     onSetFechaFin('');
+                    onSetBusqueda('');
+                    onSetTipoQueso('todos');
+                    onSetFiltro('todos');
                   }}
-                  style={{ background: '#ef4444', color: 'white', border: 'none' }}
                 >
-                  ✕
+                  Limpiar filtros
                 </button>
               )}
             </div>
           </div>
 
-          {/* Filtro por tipo de queso */}
-          <div className="filter-group">
-            <label className="form-label">Tipo de Queso</label>
-            <select
-              className="form-select"
-              value={tipoQuesoFiltro}
-              onChange={(e) => onSetTipoQueso(e.target.value)}
-            >
-              <option value="todos">Todos los tipos</option>
-              <option value="blando">Blando</option>
-              <option value="semi-duro">Semi-duro</option>
-              <option value="duro">Duro</option>
-            </select>
-          </div>
+          <div className="filters-grid">
+            {/* Búsqueda por texto */}
+            <div className="filter-item filter-search">
+              <label className="filter-label">Buscar</label>
+              <div className="search-input-wrapper">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="form-input search-input"
+                  placeholder="Nombre, PLU, ID u observaciones..."
+                  value={busquedaHistorial}
+                  onChange={(e) => onSetBusqueda(e.target.value)}
+                />
+                {busquedaHistorial && (
+                  <button 
+                    className="clear-search-btn"
+                    onClick={() => onSetBusqueda('')}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
 
-          {/* Búsqueda por texto */}
-          <div className="filter-group">
-            <input
-              type="text"
-              className="form-input"
-              placeholder="🔍 Buscar por nombre, PLU, ID o observaciones..."
-              value={busquedaHistorial}
-              onChange={(e) => onSetBusqueda(e.target.value)}
-            />
+            {/* Tipo de Queso - FIX: Clase mejorada */}
+            <div className="filter-item">
+              <label className="filter-label">Tipo de Queso</label>
+              <select
+                className="form-select filter-select"
+                value={tipoQuesoFiltro}
+                onChange={(e) => onSetTipoQueso(e.target.value)}
+              >
+                <option value="todos">Todos los tipos</option>
+                <option value="blando">Blando</option>
+                <option value="semi-duro">Semi-duro</option>
+                <option value="duro">Duro</option>
+              </select>
+            </div>
+
+            {/* Rango de Fechas */}
+            <div className="filter-item filter-dates">
+              <label className="filter-label">Rango de Fechas</label>
+              <div className="date-range-wrapper">
+                <div className="date-input-group">
+                  <span className="date-label">Desde</span>
+                  <input
+                    type="date"
+                    className="form-input date-input"
+                    value={fechaInicio}
+                    onChange={(e) => onSetFechaInicio(e.target.value)}
+                  />
+                </div>
+                <span className="date-separator">→</span>
+                <div className="date-input-group">
+                  <span className="date-label">Hasta</span>
+                  <input
+                    type="date"
+                    className="form-input date-input"
+                    value={fechaFin}
+                    onChange={(e) => onSetFechaFin(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Botones de filtro rápido */}
-          <div className="filter-buttons">
-            <button 
-              className={`filter-btn ${filtroHistorial === 'todos' ? 'active' : ''}`}
-              onClick={() => onSetFiltro('todos')}
-            >
-              Todos ({stats.total})
-            </button>
-            <button 
-              className={`filter-btn ${filtroHistorial === 'activos' ? 'active' : ''}`}
-              onClick={() => onSetFiltro('activos')}
-            >
-              Activos ({stats.activos})
-            </button>
-            <button 
-              className={`filter-btn ${filtroHistorial === 'agotados' ? 'active' : ''}`}
-              onClick={() => onSetFiltro('agotados')}
-            >
-              Agotados ({stats.agotados})
-            </button>
+          <div className="quick-filters">
+            <span className="quick-filters-label">Mostrar:</span>
+            <div className="quick-filters-buttons">
+              <button 
+                className={`quick-filter-btn ${filtroHistorial === 'todos' ? 'active' : ''}`}
+                onClick={() => onSetFiltro('todos')}
+              >
+                <span className="quick-filter-count">{stats.total}</span>
+                <span className="quick-filter-text">Todos</span>
+              </button>
+              <button 
+                className={`quick-filter-btn ${filtroHistorial === 'activos' ? 'active' : ''}`}
+                onClick={() => onSetFiltro('activos')}
+              >
+                <span className="quick-filter-count success">{stats.activos}</span>
+                <span className="quick-filter-text">Activos</span>
+              </button>
+              <button 
+                className={`quick-filter-btn ${filtroHistorial === 'agotados' ? 'active' : ''}`}
+                onClick={() => onSetFiltro('agotados')}
+              >
+                <span className="quick-filter-count danger">{stats.agotados}</span>
+                <span className="quick-filter-text">Agotados</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Lista del historial */}
+        {/* Lista del historial - NUEVO: Clases dinámicas según vista */}
         <div className="historial-content">
           {unidades.length === 0 ? (
             <div className="empty-state">
@@ -176,21 +246,37 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({
               <p>Intenta ajustar los filtros de búsqueda</p>
             </div>
           ) : (
-            <div className="inventory-grid">
+            <div className={`inventory-container ${vistaHistorial}`}>
               {unidades.map(unidad => (
-                <UnidadCard
-                  key={unidad.id}
-                  unidad={unidad}
-                  stockActual={getStockActual(unidad.producto.id)}
-                  unidadesAgotadas={getUnidadesAgotadas(unidad.producto.id)}
-                  pesoVendido={getPesoVendido(unidad.producto.id)}
-                  isHistorial={true}
-                />
+                unidad.producto ? (
+                  <UnidadCard
+                    key={unidad.id}
+                    unidad={unidad}
+                    user={user}
+                    stockActual={getStockActual(unidad.producto.id)}
+                    unidadesAgotadas={getUnidadesAgotadas(unidad.producto.id)}
+                    pesoVendido={getPesoVendido(unidad.producto.id)}
+                    onDelete={canDelete ? setUnidadEliminando : undefined}
+                    isHistorial={true}
+                  />
+                ) : null
               ))}
             </div>
           )}
         </div>
       </div>
+      
+      {/* Modal de confirmación para eliminar */}
+      {unidadEliminando && (
+        <DeleteConfirmModal
+          isOpen={!!unidadEliminando}
+          title="Eliminar Unidad del Historial"
+          message="¿Estás seguro de que deseas eliminar permanentemente esta unidad?"
+          itemName={`${unidadEliminando.producto?.nombre} (ID: #${unidadEliminando.id})`}
+          onClose={() => setUnidadEliminando(null)}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   );
 };

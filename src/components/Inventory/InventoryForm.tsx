@@ -1,5 +1,5 @@
 // src/components/Inventory/InventoryForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';  // ← Remover useEffect
 import { Producto, Motivo } from '../../types';
 import { decodificarBarcode } from '../../utils/barcode';
 
