@@ -1,92 +1,64 @@
-// src/components/Auth/Login.tsx - Versión mejorada con registro
+// src/components/Auth/Register.tsx
 import React, { useState } from 'react';
-import { User } from '../../types';
-import { Register } from './Register';
 
-interface LoginProps {
-  onLogin: (user: User) => void;
+interface RegisterProps {
+  onRegister: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  onBackToLogin: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Register: React.FC<RegisterProps> = ({ onRegister, onBackToLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setLoading(true);
     setError('');
-    setSuccess('');
+
+    // Validaciones
+    if (!username || !password || !confirmPassword) {
+      setError('Todos los campos son obligatorios');
+      setLoading(false);
+      return;
+    }
+
+    if (username.length < 3) {
+      setError('El usuario debe tener al menos 3 caracteres');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
+      const result = await onRegister(username, password);
       
-      if (res.ok) {
-        onLogin({ 
-          token: data.token, 
-          rol: data.user.rol
-        });
+      if (result.success) {
+        // Registro exitoso - el componente padre manejará la navegación
+        setUsername('');
+        setPassword('');
+        setConfirmPassword('');
       } else {
-        setError(data.message || 'Credenciales inválidas');
+        setError(result.error || 'Error al registrar usuario');
       }
     } catch (err) {
-      setError('Error de conexión al servidor');
+      setError('Error de conexión');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleRegister = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username, 
-          password,
-          rol: 'usuario' // Siempre crear como usuario
-        }),
-      });
-
-      const data = await res.json();
-      
-      if (res.ok) {
-        setSuccess('¡Usuario registrado exitosamente! Ya puedes iniciar sesión.');
-        setShowRegister(false);
-        return { success: true };
-      } else {
-        return { 
-          success: false, 
-          error: data.message || 'Error al registrar usuario' 
-        };
-      }
-    } catch (err) {
-      return { 
-        success: false, 
-        error: 'Error de conexión al servidor' 
-      };
-    }
-  };
-
-  if (showRegister) {
-    return (
-      <Register 
-        onRegister={handleRegister}
-        onBackToLogin={() => {
-          setShowRegister(false);
-          setError('');
-        }}
-      />
-    );
-  }
 
   return (
     <div style={{ 
@@ -110,16 +82,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           margin: '0 auto 1rem'
         }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-            <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.29 7 12 12 20.71 7" />
-            <line x1="12" y1="22" x2="12" y2="12" />
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
           </svg>
         </div>
         <h2 style={{ fontSize: '1.5rem', color: '#1f2937', marginBottom: '0.5rem' }}>
-          Stock de Quesos
+          Crear Cuenta
         </h2>
         <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-          Las Tres Estrellas
+          Registrate como usuario del sistema
         </p>
       </div>
       
@@ -134,20 +107,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           fontSize: '0.875rem'
         }}>
           ⚠️ {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{ 
-          padding: '0.75rem', 
-          marginBottom: '1rem', 
-          background: '#d1fae5', 
-          color: '#065f46',
-          borderRadius: 8,
-          border: '1px solid #a7f3d0',
-          fontSize: '0.875rem'
-        }}>
-          ✓ {success}
         </div>
       )}
 
@@ -181,7 +140,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         />
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1rem' }}>
         <label style={{ 
           display: 'block',
           fontSize: '0.875rem',
@@ -195,10 +154,40 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </label>
         <input
           type="password"
-          placeholder="Tu contraseña"
+          placeholder="Mínimo 6 caracteres"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+          style={{ 
+            width: '100%', 
+            padding: '0.75rem',
+            border: '2px solid #e5e7eb',
+            borderRadius: 8,
+            fontSize: '1rem',
+            transition: 'all 0.3s'
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
+          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+        />
+      </div>
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <label style={{ 
+          display: 'block',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          color: '#374151',
+          marginBottom: '0.5rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Confirmar Contraseña
+        </label>
+        <input
+          type="password"
+          placeholder="Repite tu contraseña"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleRegister()}
           style={{ 
             width: '100%', 
             padding: '0.75rem',
@@ -213,12 +202,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </div>
 
       <button 
-        onClick={handleLogin} 
+        onClick={handleRegister} 
         disabled={loading}
         style={{ 
           width: '100%', 
           padding: '0.875rem',
-          background: loading ? '#d1d5db' : '#f59e0b',
+          background: loading ? '#d1d5db' : '#10b981',
           color: 'white',
           border: 'none',
           borderRadius: 10,
@@ -226,34 +215,34 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           fontWeight: 600,
           cursor: loading ? 'not-allowed' : 'pointer',
           transition: 'all 0.3s',
-          boxShadow: loading ? 'none' : '0 2px 4px rgba(245, 158, 11, 0.3)',
-          marginBottom: '1rem'
+          boxShadow: loading ? 'none' : '0 2px 4px rgba(16, 185, 129, 0.3)'
         }}
       >
-        {loading ? 'Cargando...' : '→ Entrar'}
+        {loading ? 'Registrando...' : '✓ Crear Cuenta'}
       </button>
 
       <div style={{ 
+        marginTop: '1.5rem', 
         textAlign: 'center',
-        paddingTop: '1rem',
+        paddingTop: '1.5rem',
         borderTop: '1px solid #e5e7eb'
       }}>
         <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-          ¿No tienes cuenta?
+          ¿Ya tienes cuenta?
         </p>
         <button
-          onClick={() => setShowRegister(true)}
+          onClick={onBackToLogin}
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#10b981',
+            color: '#f59e0b',
             fontWeight: 600,
             cursor: 'pointer',
             fontSize: '0.875rem',
             textDecoration: 'underline'
           }}
         >
-          Crear una cuenta
+          Iniciar Sesión
         </button>
       </div>
     </div>

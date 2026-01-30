@@ -50,6 +50,18 @@ export const apiService = {
       body: JSON.stringify({ observacionesIngreso: observaciones }),
     }),
 
+  // ← NUEVO: Eliminar unidad (admin only)
+  deleteUnidad: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/unidades/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // ← NUEVO: Eliminar unidad del historial permanentemente (admin only)
+  deleteUnidadPermanente: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/unidades/${id}/hard`, {
+      method: 'DELETE',
+    }),
+
   createParticion: (apiFetch: any, unidadId: number, data: any) =>
     apiFetch(`${API_URL}/api/unidades/${unidadId}/particiones`, {
       method: 'POST',
@@ -59,9 +71,48 @@ export const apiService = {
   // Productos
   getProductos: (apiFetch: any) => apiFetch(`${API_URL}/api/productos`),
 
+  // ← NUEVOS: CRUD Productos (admin only)
+  createProducto: (apiFetch: any, data: any) =>
+    apiFetch(`${API_URL}/api/productos`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateProducto: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${API_URL}/api/productos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteProducto: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/productos/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Tipos de queso
   getTiposQueso: (apiFetch: any) => apiFetch(`${API_URL}/api/tipos-queso`),
 
   // Motivos
   getMotivos: (apiFetch: any) => apiFetch(`${API_URL}/api/motivos`),
+
+    // Usuarios (admin only)
+  getUsuarios: (apiFetch: any) => apiFetch(`${API_URL}/api/usuarios`),
+
+  createUsuario: (apiFetch: any, data: any) =>
+    apiFetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateUsuario: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${API_URL}/api/usuarios/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteUsuario: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/usuarios/${id}`, {
+      method: 'DELETE',
+    }),
+
 };

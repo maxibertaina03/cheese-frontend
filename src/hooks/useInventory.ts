@@ -125,6 +125,29 @@ export const useInventory = (apiFetch: any) => {
     }
   };
 
+  const deleteUnidad = async (unidadId: number) => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiService.deleteUnidad(apiFetch, unidadId);
+      if (response.ok) {
+        setSuccess('Unidad eliminada correctamente');
+        await fetchUnidades();
+        setTimeout(() => setSuccess(''), 3000);
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Error al eliminar unidad');
+        return { success: false };
+      }
+    } catch (error) {
+      setError('Error de conexión con el servidor');
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearMessages = () => {
     setError('');
     setSuccess('');
@@ -142,9 +165,12 @@ export const useInventory = (apiFetch: any) => {
     fetchMotivos,
     createUnidad,
     updateUnidad,
+    deleteUnidad,  // ← NUEVO
     createParticion,
     clearMessages,
     setError,
     setSuccess,
   };
+
+
 };

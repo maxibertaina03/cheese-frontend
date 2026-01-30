@@ -10,6 +10,8 @@ export interface Producto {
   plu: string;
   seVendePorUnidad: boolean;
   tipoQueso: TipoQueso;
+  precio?: number;           // ← Nuevo campo opcional
+  activo?: boolean;          // ← Para soft delete
 }
 
 export interface Particion {
@@ -17,6 +19,7 @@ export interface Particion {
   peso: number;
   createdAt: string;
   observacionesCorte: string | null;
+  motivo?: Motivo;
 }
 
 export interface Motivo {
@@ -43,3 +46,12 @@ export interface User {
 }
 
 export type FiltroHistorial = 'todos' | 'activos' | 'agotados';
+
+// ← NUEVO: Tipo para crear producto
+export interface CreateProductoData {
+  nombre: string;
+  plu: string;
+  seVendePorUnidad: boolean;
+  tipoQuesoId: number;
+  precio?: number;
+}

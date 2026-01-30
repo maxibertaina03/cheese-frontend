@@ -34,14 +34,25 @@ export const useHistorial = (apiFetch: any) => {
         return false;
       }
 
-      // Filtro por fechas
+      // Filtro por fechas (corregido para manejar zonas horarias correctamente)
       if (fechaInicio || fechaFin) {
+        // Crear fechas ajustadas para comparar solo la parte de fecha (sin hora)
         const unidadFecha = new Date(unidad.createdAt);
-        const inicio = fechaInicio ? new Date(fechaInicio) : null;
-        const fin = fechaFin ? new Date(fechaFin) : null;
-
-        if (inicio && unidadFecha < inicio) return false;
-        if (fin && unidadFecha > fin) return false;
+        
+        if (fechaInicio) {
+          const inicio = new Date(fechaInicio + 'T00:00:00');
+          // Comparar solo fecha, ignorando hora
+          const unidadDia = new Date(unidadFecha.getFullYear(), unidadFecha.getMonth(), unidadFecha.getDate());
+          const inicioDia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+          if (unidadDia < inicioDia) return false;
+        }
+        
+        if (fechaFin) {
+          const fin = new Date(fechaFin + 'T23:59:59');
+          const unidadDia = new Date(unidadFecha.getFullYear(), unidadFecha.getMonth(), unidadFecha.getDate());
+          const finDia = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
+          if (unidadDia > finDia) return false;
+        }
       }
 
       // Filtro por búsqueda de texto
@@ -78,6 +89,23 @@ export const useHistorial = (apiFetch: any) => {
     setShowHistorial(false);
   };
 
+
+  const deleteUnidadPermanente = async (unidadId: number) => {
+  try {
+    const response = await apiService.deleteUnidadPermanente(apiFetch, unidadId);
+    if (response.ok) {
+      // Actualizar lista local eliminando la unidad
+      setHistorialUnidades(prev => prev.filter(u => u.id !== unidadId));
+      return { success: true };
+    } else {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error };
+    }
+  } catch (error) {
+    return { success: false, error: 'Error de conexión' };
+  }
+  };
+
   return {
     historialUnidades,
     historialFiltrado,
@@ -93,8 +121,10 @@ export const useHistorial = (apiFetch: any) => {
     setFechaInicio,
     setFechaFin,
     setTipoQuesoFiltro,
+    deleteUnidadPermanente,  // ← NUEVO
     openHistorial,
     closeHistorial,
     fetchHistorial,
+    
   };
 };
