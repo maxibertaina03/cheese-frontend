@@ -19,6 +19,8 @@ import { HistorialView } from './components/History/HistorialView';
 import { AdminPanel } from './components/Admin/AdminPanel';
 import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';
+import { useElementos } from './hooks/useElementos';
+import { ElementosView } from './components/Elementos/ElementosView';
 
 function App() {
   const { user, setUser } = useAuth();
@@ -28,7 +30,7 @@ function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
-  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard'>('inventario');
+  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos'>('inventario');
   
   const [unidadEliminando, setUnidadEliminando] = useState<Unidad | null>(null);
   
@@ -100,6 +102,20 @@ function App() {
     deleteProducto,
   } = useAdmin(apiFetch);
 
+  const {
+    elementos,
+    loading: loadingElementos,
+    error: errorElementos,
+    success: successElementos,
+    fetchElementos,
+    fetchMovimientos,
+    createElemento,
+    updateElemento,
+    deleteElemento,
+    registrarIngreso,
+    registrarEgreso,
+  } = useElementos(apiFetch);
+
   useEffect(() => {
     if (user?.token && !dataLoaded) {
       const fetchData = async () => {
@@ -109,12 +125,13 @@ function App() {
           fetchMotivos(),
           fetchTiposQueso(),
           fetchHistorial(),
+          fetchElementos(),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchHistorial]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchHistorial, fetchElementos]);
   const historialCargado = useRef(false);
 
   
@@ -247,15 +264,39 @@ function App() {
       .reduce((sum, u) => sum + Number(u.pesoInicial), 0);
   };
 
+  const headerStats =
+    vistaActual === 'elementos'
+      ? [
+          { label: 'Disponibles', value: elementos.reduce((sum, e) => sum + Number(e.cantidadDisponible || 0), 0) },
+          { label: 'Elementos', value: elementos.length },
+        ]
+      : [
+          { label: 'Activas', value: unidades.filter(u => u.activa).length },
+          { label: 'Productos', value: productos.length },
+        ];
+
+  const activeError = vistaActual === 'elementos' ? errorElementos : error;
+  const activeSuccess = vistaActual === 'elementos' ? successElementos : success;
+
+  const handleNewIngreso = () => {
+    if (vistaActual !== 'inventario') {
+      setVistaActual('inventario');
+      setShowForm(true);
+      return;
+    }
+    setShowForm(!showForm);
+  };
+
   if (!user) return <Login onLogin={setUser} />;
 
   return (
     <div className="app">
       <Header
         user={user}
-        unidadesActivas={unidades.filter(u => u.activa).length}
-        totalProductos={productos.length}
-        onNewIngreso={() => setShowForm(!showForm)}
+        title={vistaActual === 'elementos' ? 'Stock de Elementos' : 'Stock de Quesos'}
+        subtitle="Las Tres Estrellas"
+        stats={headerStats}
+        onNewIngreso={handleNewIngreso}
         onOpenHistorial={() => {
           setVistaActual('historial');
           setShowForm(false);
@@ -266,10 +307,14 @@ function App() {
           setVistaActual('dashboard');
           setShowForm(false);
         }}
+        onOpenElementos={() => {
+          setVistaActual('elementos');
+          setShowForm(false);
+        }}
         showForm={showForm}
       />
 
-      <Alerts error={error} success={success} />
+      <Alerts error={activeError} success={activeSuccess} />
 
       {/* ✨ ACTUALIZADO: Agregar Dashboard como tercera vista */}
       {vistaActual === 'inventario' ? (
@@ -311,6 +356,20 @@ function App() {
           getUnidadesAgotadas={getUnidadesAgotadasProducto}
           getPesoVendido={getPesoVendidoProducto}
           onDeleteUnidad={deleteUnidadPermanente}
+          onVolver={() => setVistaActual('inventario')}
+        />
+      ) : vistaActual === 'elementos' ? (
+        <ElementosView
+          user={user}
+          elementos={elementos}
+          motivos={motivos}
+          loading={loadingElementos}
+          onCreateElemento={createElemento}
+          onUpdateElemento={updateElemento}
+          onDeleteElemento={deleteElemento}
+          onRegistrarIngreso={registrarIngreso}
+          onRegistrarEgreso={registrarEgreso}
+          onFetchMovimientos={fetchMovimientos}
           onVolver={() => setVistaActual('inventario')}
         />
       ) : (
