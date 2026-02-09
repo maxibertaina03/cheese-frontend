@@ -5,23 +5,27 @@ import { usePermissions } from '../../utils/permissions';
 
 interface HeaderProps {
   user: User | null;
-  unidadesActivas: number;
-  totalProductos: number;
+  title?: string;
+  subtitle?: string;
+  stats?: { label: string; value: number | string }[];
   onNewIngreso: () => void;
   onOpenHistorial: () => void;
   onOpenAdmin?: () => void;
   onOpenDashboard?: () => void;  // ✨ NUEVO
+  onOpenElementos?: () => void;
   showForm: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   user,
-  unidadesActivas,
-  totalProductos,
+  title = 'Stock de Quesos',
+  subtitle = 'Las Tres Estrellas',
+  stats = [],
   onNewIngreso,
   onOpenHistorial,
   onOpenAdmin,
   onOpenDashboard,  // ✨ NUEVO
+  onOpenElementos,
   showForm,
 }) => {
   const { isAdmin } = usePermissions(user);
@@ -38,8 +42,8 @@ export const Header: React.FC<HeaderProps> = ({
             </svg>
           </div>
           <div className="header-title">
-            <h1>Stock de Quesos</h1>
-            <p>Las Tres Estrellas</p>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
             {isAdmin && (
               <span style={{ 
                 fontSize: '0.75rem', 
@@ -57,18 +61,31 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-stats">
-          <div className="stat-item">
-            <div className="stat-value">{unidadesActivas}</div>
-            <div className="stat-label">Activas</div>
-          </div>
-          <div className="stat-divider"></div>
-          <div className="stat-item">
-            <div className="stat-value">{totalProductos}</div>
-            <div className="stat-label">Productos</div>
-          </div>
+          {stats.map((stat, index) => (
+            <React.Fragment key={stat.label}>
+              <div className="stat-item">
+                <div className="stat-value">{stat.value}</div>
+                <div className="stat-label">{stat.label}</div>
+              </div>
+              {index < stats.length - 1 && <div className="stat-divider"></div>}
+            </React.Fragment>
+          ))}
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {onOpenElementos && (
+            <button 
+              className="btn-primary" 
+              onClick={onOpenElementos}
+              style={{ background: '#0ea5e9' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M8 8h8M8 12h8M8 16h8" />
+              </svg>
+              Elementos
+            </button>
+          )}
           {/* ✨ NUEVO: Botón de Dashboard */}
           {onOpenDashboard && (
             <button 

@@ -55,3 +55,29 @@ export interface CreateProductoData {
   tipoQuesoId: number;
   precio?: number;
 }
+
+export interface UsuarioMini {
+  id: number;
+  email?: string;
+}
+
+export interface MovimientoElemento {
+  id: number;
+  tipo: 'ingreso' | 'egreso';
+  cantidad: number;
+  motivo?: Motivo | null;
+  observaciones?: string | null;
+  creadoPor?: UsuarioMini;
+  createdAt: string;
+}
+
+export interface Elemento {
+  id: number;
+  nombre: string;
+  cantidadTotal: number;
+  cantidadDisponible: number;
+  descripcion?: string | null;
+  activo: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}

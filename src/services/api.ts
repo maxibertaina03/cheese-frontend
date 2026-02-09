@@ -115,4 +115,39 @@ export const apiService = {
       method: 'DELETE',
     }),
 
+  // Elementos
+  getElementos: (apiFetch: any) => apiFetch(`${API_URL}/api/elementos`),
+  getElemento: (apiFetch: any, id: number) => apiFetch(`${API_URL}/api/elementos/${id}`),
+  getElementoMovimientos: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/elementos/${id}/movimientos`),
+
+  createElemento: (apiFetch: any, data: any) =>
+    apiFetch(`${API_URL}/api/elementos`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateElemento: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${API_URL}/api/elementos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteElemento: (apiFetch: any, id: number) =>
+    apiFetch(`${API_URL}/api/elementos/${id}`, {
+      method: 'DELETE',
+    }),
+
+  elementoIngreso: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${API_URL}/api/elementos/${id}/ingreso`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  elementoEgreso: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${API_URL}/api/elementos/${id}/egreso`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
 };
