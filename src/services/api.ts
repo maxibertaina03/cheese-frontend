@@ -116,38 +116,39 @@ export const apiService = {
     }),
 
   // Elementos
-  getElementos: (apiFetch: any) => apiFetch(`${API_URL}/api/elementos`),
-  getElemento: (apiFetch: any, id: number) => apiFetch(`${API_URL}/api/elementos/${id}`),
-  getElementoMovimientos: (apiFetch: any, id: number) =>
-    apiFetch(`${API_URL}/api/elementos/${id}/movimientos`),
+  getElementos: (apiFetch: any) => 
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos`),
 
-  createElemento: (apiFetch: any, data: any) =>
-    apiFetch(`${API_URL}/api/elementos`, {
+  createElemento: (apiFetch: any, data: { nombre: string; cantidadTotal: number; descripcion?: string | null }) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  updateElemento: (apiFetch: any, id: number, data: any) =>
-    apiFetch(`${API_URL}/api/elementos/${id}`, {
+  updateElemento: (apiFetch: any, id: number, data: { nombre: string; descripcion?: string | null }) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
 
   deleteElemento: (apiFetch: any, id: number) =>
-    apiFetch(`${API_URL}/api/elementos/${id}`, {
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}`, {
       method: 'DELETE',
     }),
 
-  elementoIngreso: (apiFetch: any, id: number, data: any) =>
-    apiFetch(`${API_URL}/api/elementos/${id}/ingreso`, {
+  elementoIngreso: (apiFetch: any, id: number, data: { cantidad: number; observaciones?: string | null }) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/ingreso`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  elementoEgreso: (apiFetch: any, id: number, data: any) =>
-    apiFetch(`${API_URL}/api/elementos/${id}/egreso`, {
+  elementoEgreso: (apiFetch: any, id: number, data: { cantidad: number; motivoId?: number | null; observaciones?: string | null }) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/egreso`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  getElementoMovimientos: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/movimientos`),
 
 };

@@ -1,11 +1,14 @@
 // src/components/Dashboard/Dashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { User } from '../../types';
 import './Dashboard.css';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface DashboardProps {
   user: User;
@@ -38,32 +41,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState<'hoy' | 'semana' | 'mes'>('semana');
 
+  // Refs para capturar gráficos como imágenes
+  const topProductosRef = useRef<HTMLDivElement>(null);
+  const inventarioTipoRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchDashboard();
   }, []);
 
   const fetchDashboard = async () => {
     try {
-      const [dashboardRes, alertasRes] = await Promise.all([
+      const [dashboardRes] = await Promise.all([
         fetch(`${process.env.REACT_APP_API_URL}/api/reportes/dashboard`, {
-          headers: { Authorization: `Bearer ${user.token}` }
-        }),
-        fetch(`${process.env.REACT_APP_API_URL}/api/alertas`, {
           headers: { Authorization: `Bearer ${user.token}` }
         })
       ]);
 
       const dashboardData = await dashboardRes.json();
-      const alertasData = await alertasRes.json();
 
       console.log('Respuesta API dashboard:', dashboardData);
       console.log('Props unidades:', unidades.length);
       console.log('Props historial:', historialUnidades.length);
 
-      setData({
-        ...dashboardData,
-        alertas: alertasData
-      });
+      setData(dashboardData);
     } catch (error) {
       console.error('Error al cargar dashboard:', error);
     } finally {
@@ -93,30 +93,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         pesoTotal: u.pesoActual
       }));
 
-  const ventasDesdeApi = data.ventas?.[periodo] || [];
-  
-  // Si no hay ventas en la API, calcular desde historial
-  const ventasPeriodo = ventasDesdeApi.length > 0 
-    ? ventasDesdeApi 
-    : calcularVentasDesdeHistorial(historialUnidades, periodo);
-
   const topProductos = data.topProductos?.length > 0 
     ? data.topProductos 
     : calcularTopProductos(historialUnidades);
 
-  const inventarioValorizado = data.inventarioValorizado || [];
-  const alertas = data.alertas || [];
-
   // Preparar datos para gráficos
-  const ventasData = ventasPeriodo.map(v => ({
-    fecha: v.fecha ? new Date(v.fecha).toLocaleDateString('es-AR', { 
-      day: '2-digit', 
-      month: 'short' 
-    }) : 'Sin fecha',
-    peso: (parseFloat(v.totalPeso || v.peso || 0) / 1000).toFixed(2),
-    cortes: parseInt(v.cantidadCortes || v.cortes || 0)
-  }));
-
   const inventarioPorTipo = unidadesActivas.reduce((acc: any[], inv) => {
     const tipo = inv.tipoQueso || inv.producto?.nombre || 'Otros';
     const existente = acc.find(item => item.name === tipo);
@@ -137,47 +118,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     sum + (parseFloat(inv.pesoTotal || inv.pesoActual || 0)), 0
   );
   
-  const valorTotal = inventarioValorizado.reduce((sum, inv) => 
-    sum + (parseFloat(inv.valorTotal || 0)), 0 
+  const totalCortes = topProductos.reduce((sum, p) => 
+    sum + (parseInt(p.cantidadCortes || 0)), 0
   );
-  
-  const totalCortes = ventasPeriodo.reduce((sum, v) => 
-    sum + (parseInt(v.cantidadCortes || v.cortes || 0)), 0
-  );
-
-  // Función auxiliar para calcular ventas desde historial
-  function calcularVentasDesdeHistorial(historial: any[], periodo: string) {
-    const ahora = new Date();
-    const inicioPeriodo = new Date();
-    
-    if (periodo === 'hoy') {
-      inicioPeriodo.setHours(0, 0, 0, 0);
-    } else if (periodo === 'semana') {
-      inicioPeriodo.setDate(ahora.getDate() - 7);
-    } else if (periodo === 'mes') {
-      inicioPeriodo.setDate(ahora.getDate() - 30);
-    }
-
-    const unidadesFiltradas = historial.filter(u => {
-      if (u.activa) return false;
-      const fecha = new Date(u.updatedAt || u.fechaEgreso);
-      return fecha >= inicioPeriodo;
-    });
-
-    // Agrupar por día
-    const porDia: { [key: string]: { fecha: string, totalPeso: number, cantidadCortes: number } } = {};
-    
-    unidadesFiltradas.forEach(u => {
-      const fecha = new Date(u.updatedAt || u.fechaEgreso).toLocaleDateString('es-AR');
-      if (!porDia[fecha]) {
-        porDia[fecha] = { fecha, totalPeso: 0, cantidadCortes: 0 };
-      }
-      porDia[fecha].totalPeso += parseFloat(u.pesoInicial || 0);
-      porDia[fecha].cantidadCortes += 1;
-    });
-
-    return Object.values(porDia);
-  }
 
   // Función auxiliar para top productos desde historial
   function calcularTopProductos(historial: any[]) {
@@ -201,10 +144,104 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return Object.values(productosMap)
       .map((p: any) => ({
         ...p,
-        promedioCorte: p.totalVendido / p.cantidadCortes
+        promedioCorte: p.cantidadCortes > 0 ? p.totalVendido / p.cantidadCortes : 0
       }))
       .sort((a: any, b: any) => b.totalVendido - a.totalVendido);
   }
+
+  // 📊 EXPORTAR A EXCEL
+  const exportarExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Hoja 1: Resumen KPIs
+    const kpiData = [
+      { Indicador: 'Unidades en Stock', Valor: totalUnidades },
+      { Indicador: 'Peso Total (kg)', Valor: (totalPeso / 1000).toFixed(2) },
+      { Indicador: 'Total Cortes', Valor: totalCortes },
+    ];
+    const wsKPI = XLSX.utils.json_to_sheet(kpiData);
+    XLSX.utils.book_append_sheet(wb, wsKPI, 'Resumen');
+
+    // Hoja 2: Inventario por Tipo
+    const inventarioData = inventarioPorTipo.map(item => ({
+      'Tipo de Queso': item.name,
+      'Peso Total (kg)': item.value.toFixed(2)
+    }));
+    const wsInventario = XLSX.utils.json_to_sheet(inventarioData);
+    XLSX.utils.book_append_sheet(wb, wsInventario, 'Inventario por Tipo');
+
+    // Hoja 3: Top Productos
+    const topProductosData = topProductos.map(prod => ({
+      'Producto': prod.nombre,
+      'Total Vendido (kg)': (parseFloat(prod.totalVendido || 0) / 1000).toFixed(2),
+      'Cantidad Cortes': prod.cantidadCortes,
+      'Promedio por Corte (g)': (parseFloat(prod.promedioCorte || 0)).toFixed(0)
+    }));
+    const wsTop = XLSX.utils.json_to_sheet(topProductosData);
+    XLSX.utils.book_append_sheet(wb, wsTop, 'Top Productos');
+
+    // Descargar
+    XLSX.writeFile(wb, `Dashboard_Quesos_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // 📄 EXPORTAR A PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    const fecha = new Date().toLocaleDateString('es-AR');
+    
+    // Título
+    doc.setFontSize(20);
+    doc.text('Dashboard - Stock de Quesos', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Fecha: ${fecha}`, 14, 30);
+
+    // KPIs
+    doc.setFontSize(14);
+    doc.text('Resumen General', 14, 45);
+    doc.setFontSize(11);
+    doc.text(`• Unidades en Stock: ${totalUnidades}`, 14, 55);
+    doc.text(`• Peso Total: ${(totalPeso / 1000).toFixed(1)} kg`, 14, 62);
+    doc.text(`• Total Cortes: ${totalCortes}`, 14, 69);
+
+    // Tabla Top Productos
+    doc.setFontSize(14);
+    doc.text('Top Productos Vendidos', 14, 85);
+    
+    const tableData = topProductos.map(prod => [
+      prod.nombre,
+      `${(parseFloat(prod.totalVendido || 0) / 1000).toFixed(2)} kg`,
+      prod.cantidadCortes.toString(),
+      `${(parseFloat(prod.promedioCorte || 0)).toFixed(0)} g`
+    ]);
+
+    (doc as any).autoTable({
+      startY: 90,
+      head: [['Producto', 'Total Vendido', 'Cortes', 'Promedio']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [245, 158, 11] }
+    });
+
+    // Tabla Inventario por Tipo
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.text('Inventario por Tipo de Queso', 14, finalY);
+    
+    const inventarioData = inventarioPorTipo.map(item => [
+      item.name,
+      `${item.value.toFixed(2)} kg`
+    ]);
+
+    (doc as any).autoTable({
+      startY: finalY + 5,
+      head: [['Tipo de Queso', 'Peso Total']],
+      body: inventarioData,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] }
+    });
+
+    doc.save(`Dashboard_Quesos_${fecha.replace(/\//g, '-')}.pdf`);
+  };
 
   return (
     <div className="dashboard-container">
@@ -233,36 +270,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Alertas */}
-      {alertas.length > 0 && (
-        <div className="alertas-section">
-          <h3>⚠️ Alertas Activas ({alertas.length})</h3>
-          <div className="alertas-grid">
-            {alertas.slice(0, 3).map((alerta, idx) => (
-              <div 
-                key={idx} 
-                className={`alerta-card ${alerta.prioridad || 'baja'}`}
-              >
-                <div className="alerta-header">
-                  <span className="alerta-tipo">{alerta.tipo || 'Info'}</span>
-                  <span className="alerta-prioridad">{alerta.prioridad || 'baja'}</span>
-                </div>
-                <p>{alerta.mensaje}</p>
-                {alerta.detalles && (
-                  <div className="alerta-detalles">
-                    {Object.entries(alerta.detalles).map(([key, value]) => (
-                      <span key={key}>
-                        {key}: <strong>{String(value)}</strong>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* KPIs */}
       <div className="kpis-grid">
         <div className="kpi-card">
@@ -282,57 +289,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon">💰</div>
-          <div className="kpi-content">
-            <div className="kpi-value">${valorTotal.toFixed(2)}</div>
-            <div className="kpi-label">Valor Inventario</div>
-          </div>
-        </div>
-
-        <div className="kpi-card">
           <div className="kpi-icon">✂️</div>
           <div className="kpi-content">
             <div className="kpi-value">{totalCortes}</div>
-            <div className="kpi-label">Cortes ({periodo})</div>
+            <div className="kpi-label">Cortes Totales</div>
           </div>
         </div>
       </div>
 
       {/* Gráficos */}
       <div className="charts-grid">
-        {/* Ventas por día */}
-        <div className="chart-card">
-          <h3>Ventas en el Período</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={ventasData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="fecha" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip />
-              <Legend />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="peso" 
-                stroke="#f59e0b" 
-                name="Peso (kg)"
-                strokeWidth={2}
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="cortes" 
-                stroke="#10b981" 
-                name="Cortes"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
         {/* Top productos */}
-        <div className="chart-card">
+        <div className="chart-card" ref={topProductosRef}>
           <h3>Top 5 Productos Vendidos</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topProductos.slice(0, 5)}>
@@ -347,7 +315,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Inventario por tipo */}
-        <div className="chart-card">
+        <div className="chart-card" ref={inventarioTipoRef}>
           <h3>Inventario por Tipo de Queso</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -367,21 +335,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </Pie>
               <Tooltip />
             </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Inventario valorizado */}
-        <div className="chart-card">
-          <h3>Valor del Inventario por Producto</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={inventarioValorizado}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="producto" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="valorTotal" fill="#10b981" name="Valor ($)" />
-            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -411,28 +364,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </table>
       </div>
 
-{/* Botones de exportación - COMENTADOS TEMPORALMENTE
-<div className="export-buttons">
-  <button 
-    className="btn-export"
-    onClick={() => window.open(
-      `${process.env.REACT_APP_API_URL}/api/export/inventario/excel`,
-      '_blank'
-    )}
-  >
-    📊 Exportar Inventario (Excel)
-  </button>
-  <button 
-    className="btn-export"
-    onClick={() => window.open(
-      `${process.env.REACT_APP_API_URL}/api/export/inventario/pdf`,
-      '_blank'
-    )}
-  >
-    📄 Exportar Inventario (PDF)
-  </button>
-</div>
-*/}
+      {/* Botones de exportación */}
+      <div className="export-buttons">
+        <button 
+          className="btn-export"
+          onClick={exportarExcel}
+        >
+          📊 Exportar a Excel
+        </button>
+        <button 
+          className="btn-export"
+          onClick={exportarPDF}
+          style={{ background: '#dc2626' }}
+        >
+          📄 Exportar a PDF
+        </button>
+      </div>
     </div>
   );
 };

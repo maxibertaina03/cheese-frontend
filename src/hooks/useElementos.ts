@@ -13,9 +13,19 @@ export const useElementos = (apiFetch: any) => {
     try {
       const response = await apiService.getElementos(apiFetch);
       const data = await response.json();
-      setElementos(data);
+      
+      // 🔧 FIX: Validar que data sea un array
+      if (Array.isArray(data)) {
+        setElementos(data);
+      } else {
+        console.error('API devolvió datos no válidos:', data);
+        setElementos([]); // ← Mantener como array vacío
+        setError('Error: formato de datos inválido');
+      }
     } catch (err) {
       console.error('Error al cargar elementos:', err);
+      setElementos([]); // 🔧 FIX: En caso de error, mantener array vacío
+      setError('Error al cargar elementos');
     }
   }, [apiFetch]);
 
@@ -29,7 +39,7 @@ export const useElementos = (apiFetch: any) => {
           return [];
         }
         const data = await response.json();
-        return data;
+        return Array.isArray(data) ? data : []; // 🔧 FIX: Validar array
       } catch (err) {
         setError('Error de conexión con el servidor');
         return [];
