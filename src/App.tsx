@@ -264,11 +264,20 @@ function App() {
       .reduce((sum, u) => sum + Number(u.pesoInicial), 0);
   };
 
+  // 🔧 FIX: Validar que elementos sea un array antes de usar reduce
   const headerStats =
     vistaActual === 'elementos'
       ? [
-          { label: 'Disponibles', value: elementos.reduce((sum, e) => sum + Number(e.cantidadDisponible || 0), 0) },
-          { label: 'Elementos', value: elementos.length },
+          { 
+            label: 'Disponibles', 
+            value: Array.isArray(elementos) 
+              ? elementos.reduce((sum, e) => sum + Number(e.cantidadDisponible || 0), 0)
+              : 0
+          },
+          { 
+            label: 'Elementos', 
+            value: Array.isArray(elementos) ? elementos.length : 0 
+          },
         ]
       : [
           { label: 'Activas', value: unidades.filter(u => u.activa).length },

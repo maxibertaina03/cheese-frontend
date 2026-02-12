@@ -344,4 +344,61 @@
   .dashboard-table td {
     padding: 0.5rem;
   }
+    /* Dashboard.css - Agregar/Actualizar estas clases */
+
+  .export-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .btn-export {
+    padding: 1rem 2rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-export:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-export:last-child:hover {
+    background: #b91c1c;
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+  }
+
+  /* Ajustar grid de gráficos para que ocupen mejor el espacio ahora que son solo 2 */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .export-buttons {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .btn-export {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

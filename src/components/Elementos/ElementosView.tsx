@@ -49,9 +49,14 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
   const [movimientos, setMovimientos] = useState<MovimientoElemento[]>([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
 
+  // 🔧 FIX: Validar que elementos sea un array
+  const elementosValidos = useMemo(() => {
+    return Array.isArray(elementos) ? elementos : [];
+  }, [elementos]);
+
   const elementosFiltrados = useMemo(() => {
     const search = filtro.toLowerCase();
-    return elementos.filter((elemento) => {
+    return elementosValidos.filter((elemento) => {
       if (soloActivos && !elemento.activo) return false;
       if (!search) return true;
       const matchNombre = elemento.nombre.toLowerCase().includes(search);
@@ -59,15 +64,15 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
       const matchDesc = elemento.descripcion?.toLowerCase().includes(search);
       return matchNombre || matchId || !!matchDesc;
     });
-  }, [elementos, filtro, soloActivos]);
+  }, [elementosValidos, filtro, soloActivos]);
 
   const stats = useMemo(() => {
-    const totalDisponible = elementos.reduce((sum, e) => sum + Number(e.cantidadDisponible || 0), 0);
-    const totalHistorico = elementos.reduce((sum, e) => sum + Number(e.cantidadTotal || 0), 0);
-    const activos = elementos.filter((e) => e.activo).length;
-    const bajos = elementos.filter((e) => e.cantidadDisponible <= 5).length;
+    const totalDisponible = elementosValidos.reduce((sum, e) => sum + Number(e.cantidadDisponible || 0), 0);
+    const totalHistorico = elementosValidos.reduce((sum, e) => sum + Number(e.cantidadTotal || 0), 0);
+    const activos = elementosValidos.filter((e) => e.activo).length;
+    const bajos = elementosValidos.filter((e) => e.cantidadDisponible <= 5).length;
     return { totalDisponible, totalHistorico, activos, bajos };
-  }, [elementos]);
+  }, [elementosValidos]);
 
   const handleOpenMovimientos = async (elemento: Elemento) => {
     setElementoMovimiento(elemento);
@@ -101,7 +106,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
   };
 
   const handleDelete = async (elemento: Elemento) => {
-    const confirmacion = window.confirm(`Â¿Eliminar el elemento "${elemento.nombre}"?`);
+    const confirmacion = window.confirm(`¿Eliminar el elemento "${elemento.nombre}"?`);
     if (!confirmacion) return;
     await onDeleteElemento(elemento.id);
   };
@@ -126,7 +131,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
             <p className="page-subtitle">Controla ingresos, egresos y disponibilidad</p>
           </div>
           <div className="elementos-actions">
-            {user?.rol !== 'admin' && <span className="badge-readonly">ðŸ”’ Solo lectura</span>}
+            {user?.rol !== 'admin' && <span className="badge-readonly">🔒 Solo lectura</span>}
             {onVolver && (
               <button className="btn-back" onClick={onVolver}>
                 Volver a Quesos
@@ -176,7 +181,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
                 />
                 {filtro && (
                   <button className="clear-search-btn" onClick={() => setFiltro('')}>
-                    ❌
+                    ✖
                   </button>
                 )}
               </div>
@@ -215,7 +220,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
             <div className="modal-header">
               <h3 className="modal-title">Nuevo Elemento</h3>
               <button className="btn-close" onClick={() => setShowForm(false)}>
-                ❌
+                ✖
               </button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -236,7 +241,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
             <div className="modal-header">
               <h3 className="modal-title">Editar Elemento</h3>
               <button className="btn-close" onClick={() => setElementoEditando(null)}>
-                ❌
+                ✖
               </button>
             </div>
             <div style={{ padding: '1.5rem' }}>
