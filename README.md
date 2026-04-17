@@ -1,46 +1,136 @@
-# Getting Started with Create React App
+# Cheese Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend del sistema de stock de quesos y elementos de **Las Tres Estrellas**.
 
-## Available Scripts
+Es una aplicacion React + TypeScript que consume el backend `cheese-backend` y permite operar el inventario diario, consultar historial, administrar productos y usuarios, ver metricas y gestionar un modulo adicional de elementos o insumos.
 
-In the project directory, you can run:
+## Que hace la aplicacion
 
-### `npm start`
+La app esta pensada para el uso interno del negocio. Desde la interfaz se puede:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- iniciar sesion con usuario y contrasena
+- visualizar el stock actual de quesos
+- registrar nuevos ingresos al inventario
+- editar observaciones de una unidad
+- realizar cortes parciales o egresos totales
+- consultar historial completo de movimientos
+- filtrar por texto, fechas y tipo de queso
+- administrar productos y usuarios si el rol es `admin`
+- ver un dashboard analitico con metricas y graficos
+- exportar informacion del dashboard a Excel y PDF
+- gestionar un stock paralelo de elementos o insumos
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Como se organiza el sistema en pantalla
 
-### `npm test`
+### Inventario
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Es la vista principal.
 
-### `npm run build`
+Muestra las unidades activas en stock y permite:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- cargar nuevas unidades
+- ver producto, peso y estado
+- editar observaciones
+- cortar una pieza
+- eliminar una unidad
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Historial
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Concentra las unidades historicas y cerradas, junto con filtros y metricas para revisar lo vendido o agotado.
 
-### `npm run eject`
+### Dashboard
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Muestra una vista analitica del negocio con:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- unidades activas
+- peso total en stock
+- cortes totales
+- top de productos vendidos
+- distribucion del inventario por tipo
+- exportacion a Excel
+- exportacion a PDF
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+### Panel de administracion
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Disponible para usuarios con rol `admin`.
 
-## Learn More
+Incluye:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- gestion de productos
+- gestion de usuarios
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Modulo de elementos
+
+Sirve para llevar stock de materiales o insumos fuera del inventario de quesos.
+
+Permite:
+
+- crear elementos
+- editar datos basicos
+- registrar ingresos
+- registrar egresos con motivo
+- consultar historial de movimientos
+- detectar elementos con stock bajo
+
+## Roles
+
+- `admin`: puede operar y administrar productos, usuarios, quesos y elementos
+- `usuario`: puede ingresar al sistema y consultar, con permisos mas limitados segun la vista
+
+## Integracion con el backend
+
+La aplicacion consume una API REST autenticada por JWT.
+
+Endpoints usados con frecuencia:
+
+- `/api/auth/login`
+- `/api/unidades`
+- `/api/unidades/historial`
+- `/api/productos`
+- `/api/tipos-queso`
+- `/api/motivos`
+- `/api/usuarios`
+- `/api/reportes/dashboard`
+- `/api/elementos`
+
+## Stack
+
+- React
+- TypeScript
+- Create React App
+- Recharts
+- jsPDF
+- xlsx
+
+## Variable de entorno
+
+El repo incluye `.env.example`.
+
+Variable requerida:
+
+- `REACT_APP_API_URL`: URL base del backend
+
+Ejemplo:
+
+```env
+REACT_APP_API_URL=http://localhost:3000
+```
+
+## Scripts
+
+- `npm start`: levanta la app en desarrollo
+- `npm run build`: genera el build de produccion
+- `npm test`: ejecuta tests
+
+## Puesta en marcha local
+
+1. Instalar dependencias con `npm install`
+2. Crear `.env` a partir de `.env.example`
+3. Asegurar que el backend este corriendo
+4. Ejecutar `npm start`
+
+Por defecto, la app abre en `http://localhost:3000` o el puerto que asigne CRA.
+
+## Relacion con el proyecto
+
+Este repositorio representa la capa visual del sistema. Toda la logica de persistencia, autenticacion, inventario, reportes y movimientos vive en `cheese-backend`, mientras que este frontend resuelve la operacion diaria del usuario final.
