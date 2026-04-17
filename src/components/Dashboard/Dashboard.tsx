@@ -1,5 +1,5 @@
 // src/components/Dashboard/Dashboard.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -12,6 +12,7 @@ import * as XLSX from 'xlsx';
 
 interface DashboardProps {
   user: User;
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   onVolver: () => void;
   unidades?: any[];
   historialUnidades?: any[];
@@ -31,7 +32,8 @@ interface DashboardData {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  user, 
+  user: _user, 
+  apiFetch,
   onVolver,
   unidades = [],
   historialUnidades = [],
@@ -45,23 +47,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const topProductosRef = useRef<HTMLDivElement>(null);
   const inventarioTipoRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
-      const [dashboardRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/api/reportes/dashboard`, {
-          headers: { Authorization: `Bearer ${user.token}` }
-        })
-      ]);
-
+      const dashboardRes = await apiFetch(`${process.env.REACT_APP_API_URL}/api/reportes/dashboard`);
       const dashboardData = await dashboardRes.json();
-
-      console.log('Respuesta API dashboard:', dashboardData);
-      console.log('Props unidades:', unidades.length);
-      console.log('Props historial:', historialUnidades.length);
 
       setData(dashboardData);
     } catch (error) {
@@ -69,7 +58,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiFetch]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   if (loading) {
     return (

@@ -36,6 +36,7 @@ export interface Unidad {
   activa: boolean;
   particiones: Particion[];
   createdAt: string;
+  deletedAt?: string | null;
   observacionesIngreso: string | null;
   motivo: Motivo;
 }

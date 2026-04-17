@@ -1,5 +1,5 @@
-// src/components/Auth/Login.tsx - Versión mejorada con registro
 import React, { useState } from 'react';
+import { apiService } from '../../services/api';
 import { User } from '../../types';
 import { Register } from './Register';
 
@@ -21,64 +21,53 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setSuccess('');
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
+      const res = await apiService.login(username, password);
       const data = await res.json();
-      
+
       if (res.ok) {
-        onLogin({ 
-          token: data.token, 
-          rol: data.user.rol
+        onLogin({
+          token: data.token,
+          rol: data.user.rol,
         });
       } else {
-        setError(data.message || 'Credenciales inválidas');
+        setError(data.error || 'Credenciales invalidas');
       }
-    } catch (err) {
-      setError('Error de conexión al servidor');
+    } catch {
+      setError('Error de conexion al servidor');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const handleRegister = async (
+    nextUsername: string,
+    nextPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username, 
-          password,
-          rol: 'usuario' // Siempre crear como usuario
-        }),
-      });
-
+      const res = await apiService.register(nextUsername, nextPassword);
       const data = await res.json();
-      
+
       if (res.ok) {
-        setSuccess('¡Usuario registrado exitosamente! Ya puedes iniciar sesión.');
+        setSuccess('Usuario registrado exitosamente. Ya puedes iniciar sesion.');
         setShowRegister(false);
         return { success: true };
-      } else {
-        return { 
-          success: false, 
-          error: data.message || 'Error al registrar usuario' 
-        };
       }
-    } catch (err) {
-      return { 
-        success: false, 
-        error: 'Error de conexión al servidor' 
+
+      return {
+        success: false,
+        error: data.error || 'Error al registrar usuario',
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Error de conexion al servidor',
       };
     }
   };
 
   if (showRegister) {
     return (
-      <Register 
+      <Register
         onRegister={handleRegister}
         onBackToLogin={() => {
           setShowRegister(false);
@@ -89,12 +78,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   }
 
   return (
-    <div style={{ 
-      maxWidth: 400, 
-      margin: '100px auto', 
-      padding: '2rem', 
+    <div style={{
+      maxWidth: 400,
+      margin: '100px auto',
+      padding: '2rem',
       background: 'white',
-      border: '1px solid #e5e7eb', 
+      border: '1px solid #e5e7eb',
       borderRadius: 16,
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
     }}>
@@ -122,37 +111,37 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           Las Tres Estrellas
         </p>
       </div>
-      
+
       {error && (
-        <div style={{ 
-          padding: '0.75rem', 
-          marginBottom: '1rem', 
-          background: '#fee2e2', 
+        <div style={{
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          background: '#fee2e2',
           color: '#991b1b',
           borderRadius: 8,
           border: '1px solid #fecaca',
           fontSize: '0.875rem'
         }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
       {success && (
-        <div style={{ 
-          padding: '0.75rem', 
-          marginBottom: '1rem', 
-          background: '#d1fae5', 
+        <div style={{
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          background: '#d1fae5',
           color: '#065f46',
           borderRadius: 8,
           border: '1px solid #a7f3d0',
           fontSize: '0.875rem'
         }}>
-          ✓ {success}
+          {success}
         </div>
       )}
 
       <div style={{ marginBottom: '1rem' }}>
-        <label style={{ 
+        <label style={{
           display: 'block',
           fontSize: '0.875rem',
           fontWeight: 600,
@@ -168,21 +157,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           placeholder="Tu nombre de usuario"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          style={{ 
-            width: '100%', 
+          style={{
+            width: '100%',
             padding: '0.75rem',
             border: '2px solid #e5e7eb',
             borderRadius: 8,
             fontSize: '1rem',
             transition: 'all 0.3s'
           }}
-          onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
-          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+          onFocus={(e) => (e.target.style.borderColor = '#f59e0b')}
+          onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
         />
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <label style={{ 
+        <label style={{
           display: 'block',
           fontSize: '0.875rem',
           fontWeight: 600,
@@ -191,32 +180,32 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
         }}>
-          Contraseña
+          Contrasena
         </label>
         <input
           type="password"
-          placeholder="Tu contraseña"
+          placeholder="Tu contrasena"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-          style={{ 
-            width: '100%', 
+          onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+          style={{
+            width: '100%',
             padding: '0.75rem',
             border: '2px solid #e5e7eb',
             borderRadius: 8,
             fontSize: '1rem',
             transition: 'all 0.3s'
           }}
-          onFocus={(e) => e.target.style.borderColor = '#f59e0b'}
-          onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+          onFocus={(e) => (e.target.style.borderColor = '#f59e0b')}
+          onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
         />
       </div>
 
-      <button 
-        onClick={handleLogin} 
+      <button
+        onClick={handleLogin}
         disabled={loading}
-        style={{ 
-          width: '100%', 
+        style={{
+          width: '100%',
           padding: '0.875rem',
           background: loading ? '#d1d5db' : '#f59e0b',
           color: 'white',
@@ -230,16 +219,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           marginBottom: '1rem'
         }}
       >
-        {loading ? 'Cargando...' : '→ Entrar'}
+        {loading ? 'Cargando...' : 'Entrar'}
       </button>
 
-      <div style={{ 
+      <div style={{
         textAlign: 'center',
         paddingTop: '1rem',
         borderTop: '1px solid #e5e7eb'
       }}>
         <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-          ¿No tienes cuenta?
+          No tienes cuenta?
         </p>
         <button
           onClick={() => setShowRegister(true)}

@@ -1,5 +1,5 @@
 // src/App.tsx - Versión con Dashboard integrado
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import { Unidad, TipoQueso } from './types';
 import { createApiFetch } from './services/api';
@@ -23,7 +23,7 @@ import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
 
 function App() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, authLoading } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [tiposQueso, setTiposQueso] = useState<TipoQueso[]>([]);
@@ -42,7 +42,6 @@ function App() {
 
   const apiFetch = createApiFetch(user?.token, () => {
     setUser(null);
-    localStorage.removeItem('token');
     alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
   });
  
@@ -116,6 +115,16 @@ function App() {
     registrarEgreso,
   } = useElementos(apiFetch);
 
+  const fetchTiposQueso = useCallback(async () => {
+    try {
+      const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
+      const data = await response.json();
+      setTiposQueso(data);
+    } catch (error) {
+      console.error('Error al cargar tipos de queso:', error);
+    }
+  }, [apiFetch]);
+
   useEffect(() => {
     if (user?.token && !dataLoaded) {
       const fetchData = async () => {
@@ -131,7 +140,7 @@ function App() {
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchHistorial, fetchElementos]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos]);
   const historialCargado = useRef(false);
 
   
@@ -151,17 +160,6 @@ function App() {
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vistaActual, user?.token, dataLoaded]);
-
-
-  const fetchTiposQueso = async () => {
-    try {
-      const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
-      const data = await response.json();
-      setTiposQueso(data);
-    } catch (error) {
-      console.error('Error al cargar tipos de queso:', error);
-    }
-  };
 
   const handleOpenAdmin = async () => {
     await Promise.all([
@@ -296,6 +294,10 @@ function App() {
     setShowForm(!showForm);
   };
 
+  if (authLoading) {
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Verificando sesion...</div>;
+  }
+
   if (!user) return <Login onLogin={setUser} />;
 
   return (
@@ -385,6 +387,7 @@ function App() {
         // ✨ NUEVO: Vista del Dashboard
         <Dashboard 
           user={user}
+          apiFetch={apiFetch}
           onVolver={() => setVistaActual('inventario')}
           unidades={unidades}                    // ← Agregar
           historialUnidades={historialUnidades}  // ← Agregar  

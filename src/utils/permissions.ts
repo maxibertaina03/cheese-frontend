@@ -1,26 +1,20 @@
-// src/utils/permissions.ts
 import { User } from '../types';
 
-export const isAdmin = (user: User | null): boolean => {
-  const result = user?.rol === 'admin';
-  console.log('isAdmin check:', { userRol: user?.rol, result });  // ← DEBUG
-  return result;
-};
+export const isAdmin = (user: User | null): boolean => user?.rol === 'admin';
 
-export const canDelete = (user: User | null): boolean => {
-  return isAdmin(user);
-};
+export const canDelete = (user: User | null): boolean => isAdmin(user);
 
-export const canManageProducts = (user: User | null): boolean => {
-  return isAdmin(user);
-};
+export const canManageProducts = (user: User | null): boolean => isAdmin(user);
 
-// src/utils/permissions.ts
-export const usePermissions = (user: User | null) => ({
-  isAdmin: isAdmin(user),
-  canDelete: isAdmin(user),
-  canCreate: isAdmin(user),     // ← NUEVO
-  canEdit: isAdmin(user),       // ← NUEVO  
-  canCut: isAdmin(user),        // ← NUEVO
-  canManageProducts: isAdmin(user),
-});
+export const usePermissions = (user: User | null) => {
+  const admin = isAdmin(user);
+
+  return {
+    isAdmin: admin,
+    canDelete: admin,
+    canCreate: admin,
+    canEdit: admin,
+    canCut: admin,
+    canManageProducts: admin,
+  };
+};

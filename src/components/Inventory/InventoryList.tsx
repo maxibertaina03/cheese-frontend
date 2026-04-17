@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Unidad, User } from '../../types';
 import { UnidadCard } from './UnidadCard';
-import { usePermissions } from '../../utils/permissions';
 
 interface InventoryListProps {
   unidades: Unidad[];
@@ -22,8 +21,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   const [filtroInventario, setFiltroInventario] = useState('');
   const [busquedaObservaciones, setBusquedaObservaciones] = useState(false);
   const [vistaMode, setVistaMode] = useState<'lista' | 'grid'>('lista');  // ← NUEVO
-
-  const { isAdmin } = usePermissions(user);
 
   // Filtro igual que antes...
   const unidadesFiltradas = unidades.filter(unidad => {

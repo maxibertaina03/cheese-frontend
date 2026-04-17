@@ -256,7 +256,7 @@ export const HistorialView: React.FC<HistorialViewProps> = ({
                   stockActual={getStockActual(unidad.producto.id)}
                   unidadesAgotadas={getUnidadesAgotadas(unidad.producto.id)}
                   pesoVendido={getPesoVendido(unidad.producto.id)}
-                  onDelete={canDelete ? setUnidadEliminando : undefined}
+                  onDelete={canDelete && (!unidad.activa || !!unidad.deletedAt) ? setUnidadEliminando : undefined}
                   isHistorial={true}
                   // Opcional: agregar una prop para saber si es vista grid
                 />

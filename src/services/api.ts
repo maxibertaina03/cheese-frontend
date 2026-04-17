@@ -6,11 +6,13 @@ export const createApiFetch = (
   onUnauthorized: () => void
 ) => {
   return (url: string, options: RequestInit = {}) => {
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
     return fetch(url, {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Bearer ${token}`,
+        ...authHeaders,
         'Content-Type': 'application/json',
       },
     }).then(response => {
@@ -30,6 +32,24 @@ export const apiService = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+    });
+    return res;
+  },
+
+  register: async (username: string, password: string) => {
+    const res = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, rol: 'usuario' }),
+    });
+    return res;
+  },
+
+  verifyToken: async (token: string) => {
+    const res = await fetch(`${API_URL}/api/auth/verify`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     return res;
   },
