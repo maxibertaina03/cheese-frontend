@@ -135,6 +135,9 @@ export const apiService = {
       method: 'DELETE',
     }),
 
+  // Reportes
+  getDashboard: (apiFetch: any) => apiFetch(`${API_URL}/api/reportes/dashboard`),
+
   // Elementos
   getElementos: (apiFetch: any) => 
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos`),

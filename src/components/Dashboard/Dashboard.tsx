@@ -1,14 +1,25 @@
-// src/components/Dashboard/Dashboard.tsx
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { User } from '../../types';
-import './Dashboard.css';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { apiService } from '../../services/api';
+import { User } from '../../types';
+import './Dashboard.css';
+
+type Periodo = 'hoy' | 'semana' | 'mes';
 
 interface DashboardProps {
   user: User;
@@ -19,39 +30,135 @@ interface DashboardProps {
   productos?: any[];
 }
 
+interface DashboardVenta {
+  fecha: string;
+  producto: string;
+  totalPeso: number;
+  cantidadCortes: number;
+  motivo?: string | null;
+}
+
+interface DashboardInventario {
+  tipoQueso?: string;
+  producto?: string;
+  cantidad: number;
+  pesoTotal: number;
+  precioKilo?: number;
+  valorTotal?: number;
+}
+
+interface DashboardTopProducto {
+  productoId?: number;
+  nombre: string;
+  totalVendido: number;
+  cantidadCortes: number;
+  promedioCorte: number;
+}
+
 interface DashboardData {
-  inventarioActual: any[];
-  ventas: {
-    hoy: any[];
-    semana: any[];
-    mes: any[];
-  };
-  topProductos: any[];
-  inventarioValorizado: any[];
+  inventarioActual: DashboardInventario[];
+  ventas: Record<Periodo, DashboardVenta[]>;
+  topProductos: DashboardTopProducto[];
+  inventarioValorizado: DashboardInventario[];
   alertas: any[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ 
-  user: _user, 
+const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6'];
+
+const PERIODO_LABELS: Record<Periodo, string> = {
+  hoy: 'hoy',
+  semana: 'ultimos 7 dias',
+  mes: 'ultimos 30 dias',
+};
+
+const toNumber = (value: unknown) => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const formatKg = (grams: number) => (grams / 1000).toFixed(2);
+
+const agruparTopProductos = (ventas: DashboardVenta[]) => {
+  const productos = new Map<string, DashboardTopProducto>();
+
+  ventas.forEach((venta) => {
+    const existente = productos.get(venta.producto) ?? {
+      nombre: venta.producto,
+      totalVendido: 0,
+      cantidadCortes: 0,
+      promedioCorte: 0,
+    };
+
+    existente.totalVendido += toNumber(venta.totalPeso);
+    existente.cantidadCortes += toNumber(venta.cantidadCortes);
+    existente.promedioCorte =
+      existente.cantidadCortes > 0 ? existente.totalVendido / existente.cantidadCortes : 0;
+
+    productos.set(venta.producto, existente);
+  });
+
+  return Array.from(productos.values()).sort((a, b) => b.totalVendido - a.totalVendido);
+};
+
+const agruparVentasPorFecha = (ventas: DashboardVenta[]) => {
+  const fechas = new Map<
+    string,
+    { fecha: string; label: string; totalPeso: number; pesoKg: number; cantidadCortes: number }
+  >();
+
+  ventas.forEach((venta) => {
+    const fecha = venta.fecha;
+    const label = new Date(`${fecha}T00:00:00`).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+    const existente = fechas.get(fecha) ?? {
+      fecha,
+      label,
+      totalPeso: 0,
+      pesoKg: 0,
+      cantidadCortes: 0,
+    };
+
+    existente.totalPeso += toNumber(venta.totalPeso);
+    existente.cantidadCortes += toNumber(venta.cantidadCortes);
+    existente.pesoKg = Number((existente.totalPeso / 1000).toFixed(2));
+
+    fechas.set(fecha, existente);
+  });
+
+  return Array.from(fechas.values()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+};
+
+export const Dashboard: React.FC<DashboardProps> = ({
+  user: _user,
   apiFetch,
   onVolver,
   unidades = [],
-  historialUnidades = [],
-  productos = []
+  historialUnidades: _historialUnidades = [],
+  productos: _productos = [],
 }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [periodo, setPeriodo] = useState<'hoy' | 'semana' | 'mes'>('semana');
-
-  // Refs para capturar gráficos como imágenes
-  const topProductosRef = useRef<HTMLDivElement>(null);
-  const inventarioTipoRef = useRef<HTMLDivElement>(null);
+  const [periodo, setPeriodo] = useState<Periodo>('semana');
 
   const fetchDashboard = useCallback(async () => {
     try {
-      const dashboardRes = await apiFetch(`${process.env.REACT_APP_API_URL}/api/reportes/dashboard`);
-      const dashboardData = await dashboardRes.json();
+      const response = await apiService.getDashboard(apiFetch);
 
+      if (!response.ok) {
+        throw new Error('No se pudo cargar el dashboard');
+      }
+
+      const dashboardData = await response.json();
       setData(dashboardData);
     } catch (error) {
       console.error('Error al cargar dashboard:', error);
@@ -73,243 +180,272 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
   }
 
-  if (!data) return null;
-
-  const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6'];
-
-  // Usar datos de API si existen, sino calcular de props
-  const unidadesActivas = data.inventarioActual?.length > 0 
-    ? data.inventarioActual 
-    : unidades.filter(u => u.activa).map(u => ({
-        tipoQueso: u.producto?.nombre || 'Desconocido',
-        cantidad: 1,
-        pesoTotal: u.pesoActual
-      }));
-
-  const topProductos = data.topProductos?.length > 0 
-    ? data.topProductos 
-    : calcularTopProductos(historialUnidades);
-
-  // Preparar datos para gráficos
-  const inventarioPorTipo = unidadesActivas.reduce((acc: any[], inv) => {
-    const tipo = inv.tipoQueso || inv.producto?.nombre || 'Otros';
-    const existente = acc.find(item => item.name === tipo);
-    const peso = parseFloat(inv.pesoTotal || inv.pesoActual || 0) / 1000;
-    
-    if (existente) {
-      existente.value += peso;
-    } else {
-      acc.push({ name: tipo, value: peso });
-    }
-    return acc;
-  }, []);
-
-  // Calcular KPIs
-  const totalUnidades = unidadesActivas.length;
-  
-  const totalPeso = unidadesActivas.reduce((sum, inv) => 
-    sum + (parseFloat(inv.pesoTotal || inv.pesoActual || 0)), 0
-  );
-  
-  const totalCortes = topProductos.reduce((sum, p) => 
-    sum + (parseInt(p.cantidadCortes || 0)), 0
-  );
-
-  // Función auxiliar para top productos desde historial
-  function calcularTopProductos(historial: any[]) {
-    const productosMap: { [key: string]: any } = {};
-    
-    historial
-      .filter(u => !u.activa)
-      .forEach(u => {
-        const nombre = u.producto?.nombre || 'Desconocido';
-        if (!productosMap[nombre]) {
-          productosMap[nombre] = {
-            nombre,
-            totalVendido: 0,
-            cantidadCortes: 0
-          };
-        }
-        productosMap[nombre].totalVendido += parseFloat(u.pesoInicial || 0);
-        productosMap[nombre].cantidadCortes += 1;
-      });
-
-    return Object.values(productosMap)
-      .map((p: any) => ({
-        ...p,
-        promedioCorte: p.cantidadCortes > 0 ? p.totalVendido / p.cantidadCortes : 0
-      }))
-      .sort((a: any, b: any) => b.totalVendido - a.totalVendido);
+  if (!data) {
+    return null;
   }
 
-  // 📊 EXPORTAR A EXCEL
+  const periodoLabel = PERIODO_LABELS[periodo];
+  const ventasPeriodo = data.ventas?.[periodo] ?? [];
+  const topProductosPeriodo = agruparTopProductos(ventasPeriodo);
+  const ventasPorFecha = agruparVentasPorFecha(ventasPeriodo);
+  const inventarioActual =
+    data.inventarioActual?.length > 0
+      ? data.inventarioActual
+      : unidades
+          .filter((unidad) => unidad.activa)
+          .map((unidad) => ({
+            tipoQueso: unidad.producto?.nombre || 'Desconocido',
+            cantidad: 1,
+            pesoTotal: toNumber(unidad.pesoActual),
+          }));
+
+  const inventarioPorTipo = inventarioActual.reduce(
+    (acumulado: Array<{ name: string; value: number }>, item) => {
+      const tipo = item.tipoQueso || item.producto || 'Otros';
+      const existente = acumulado.find((entry) => entry.name === tipo);
+      const pesoKg = toNumber(item.pesoTotal) / 1000;
+
+      if (existente) {
+        existente.value += pesoKg;
+      } else {
+        acumulado.push({ name: tipo, value: pesoKg });
+      }
+
+      return acumulado;
+    },
+    []
+  );
+
+  const totalUnidades = inventarioActual.reduce(
+    (total, item) => total + toNumber(item.cantidad || 1),
+    0
+  );
+  const totalPesoStock = inventarioActual.reduce((total, item) => total + toNumber(item.pesoTotal), 0);
+  const valorInventario = (data.inventarioValorizado || []).reduce(
+    (total, item) => total + toNumber(item.valorTotal),
+    0
+  );
+  const totalCortesPeriodo = ventasPeriodo.reduce(
+    (total, venta) => total + toNumber(venta.cantidadCortes),
+    0
+  );
+  const pesoVendidoPeriodo = ventasPeriodo.reduce(
+    (total, venta) => total + toNumber(venta.totalPeso),
+    0
+  );
+  const diasConMovimiento = ventasPorFecha.length;
+
   const exportarExcel = () => {
-    const wb = XLSX.utils.book_new();
-    
-    // Hoja 1: Resumen KPIs
-    const kpiData = [
-      { Indicador: 'Unidades en Stock', Valor: totalUnidades },
-      { Indicador: 'Peso Total (kg)', Valor: (totalPeso / 1000).toFixed(2) },
-      { Indicador: 'Total Cortes', Valor: totalCortes },
+    const workbook = XLSX.utils.book_new();
+    const resumen = [
+      { Indicador: 'Periodo analizado', Valor: periodoLabel },
+      { Indicador: 'Unidades en stock', Valor: totalUnidades },
+      { Indicador: 'Peso total en stock (kg)', Valor: formatKg(totalPesoStock) },
+      { Indicador: 'Valor del inventario', Valor: valorInventario.toFixed(2) },
+      { Indicador: 'Cortes del periodo', Valor: totalCortesPeriodo },
+      { Indicador: 'Peso vendido en el periodo (kg)', Valor: formatKg(pesoVendidoPeriodo) },
+      { Indicador: 'Dias con movimiento', Valor: diasConMovimiento },
     ];
-    const wsKPI = XLSX.utils.json_to_sheet(kpiData);
-    XLSX.utils.book_append_sheet(wb, wsKPI, 'Resumen');
 
-    // Hoja 2: Inventario por Tipo
-    const inventarioData = inventarioPorTipo.map(item => ({
-      'Tipo de Queso': item.name,
-      'Peso Total (kg)': item.value.toFixed(2)
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+
+    const ventasData = ventasPorFecha.map((venta) => ({
+      Fecha: venta.label,
+      'Peso vendido (kg)': venta.pesoKg.toFixed(2),
+      Cortes: venta.cantidadCortes,
     }));
-    const wsInventario = XLSX.utils.json_to_sheet(inventarioData);
-    XLSX.utils.book_append_sheet(wb, wsInventario, 'Inventario por Tipo');
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(ventasData.length ? ventasData : [{ Fecha: 'Sin datos', 'Peso vendido (kg)': '0.00', Cortes: 0 }]),
+      'Ventas periodo'
+    );
 
-    // Hoja 3: Top Productos
-    const topProductosData = topProductos.map(prod => ({
-      'Producto': prod.nombre,
-      'Total Vendido (kg)': (parseFloat(prod.totalVendido || 0) / 1000).toFixed(2),
-      'Cantidad Cortes': prod.cantidadCortes,
-      'Promedio por Corte (g)': (parseFloat(prod.promedioCorte || 0)).toFixed(0)
+    const topProductosData = topProductosPeriodo.map((producto) => ({
+      Producto: producto.nombre,
+      'Total vendido (kg)': formatKg(producto.totalVendido),
+      'Cantidad de cortes': producto.cantidadCortes,
+      'Promedio por corte (g)': producto.promedioCorte.toFixed(0),
     }));
-    const wsTop = XLSX.utils.json_to_sheet(topProductosData);
-    XLSX.utils.book_append_sheet(wb, wsTop, 'Top Productos');
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(
+        topProductosData.length
+          ? topProductosData
+          : [{ Producto: 'Sin ventas', 'Total vendido (kg)': '0.00', 'Cantidad de cortes': 0, 'Promedio por corte (g)': '0' }]
+      ),
+      'Top productos'
+    );
 
-    // Descargar
-    XLSX.writeFile(wb, `Dashboard_Quesos_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const inventarioData = inventarioPorTipo.map((item) => ({
+      'Tipo de queso': item.name,
+      'Peso total (kg)': item.value.toFixed(2),
+    }));
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(inventarioData), 'Inventario');
+
+    XLSX.writeFile(workbook, `Dashboard_Quesos_${periodo}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // 📄 EXPORTAR A PDF
   const exportarPDF = () => {
     const doc = new jsPDF();
     const fecha = new Date().toLocaleDateString('es-AR');
-    
-    // Título
+
     doc.setFontSize(20);
     doc.text('Dashboard - Stock de Quesos', 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Fecha: ${fecha}`, 14, 30);
-
-    // KPIs
-    doc.setFontSize(14);
-    doc.text('Resumen General', 14, 45);
     doc.setFontSize(11);
-    doc.text(`• Unidades en Stock: ${totalUnidades}`, 14, 55);
-    doc.text(`• Peso Total: ${(totalPeso / 1000).toFixed(1)} kg`, 14, 62);
-    doc.text(`• Total Cortes: ${totalCortes}`, 14, 69);
+    doc.text(`Fecha: ${fecha}`, 14, 29);
+    doc.text(`Periodo: ${periodoLabel}`, 14, 36);
 
-    // Tabla Top Productos
     doc.setFontSize(14);
-    doc.text('Top Productos Vendidos', 14, 85);
-    
-    const tableData = topProductos.map(prod => [
-      prod.nombre,
-      `${(parseFloat(prod.totalVendido || 0) / 1000).toFixed(2)} kg`,
-      prod.cantidadCortes.toString(),
-      `${(parseFloat(prod.promedioCorte || 0)).toFixed(0)} g`
-    ]);
+    doc.text('Resumen general', 14, 50);
+    doc.setFontSize(11);
+    doc.text(`Unidades en stock: ${totalUnidades}`, 14, 60);
+    doc.text(`Peso total en stock: ${formatKg(totalPesoStock)} kg`, 14, 67);
+    doc.text(`Valor del inventario: $${valorInventario.toFixed(2)}`, 14, 74);
+    doc.text(`Cortes del periodo: ${totalCortesPeriodo}`, 14, 81);
+    doc.text(`Peso vendido: ${formatKg(pesoVendidoPeriodo)} kg`, 14, 88);
 
+    const topProductosTable = topProductosPeriodo.length
+      ? topProductosPeriodo.map((producto) => [
+          producto.nombre,
+          `${formatKg(producto.totalVendido)} kg`,
+          producto.cantidadCortes.toString(),
+          `${producto.promedioCorte.toFixed(0)} g`,
+        ])
+      : [['Sin ventas', '0.00 kg', '0', '0 g']];
+
+    doc.setFontSize(14);
+    doc.text('Top productos del periodo', 14, 104);
     (doc as any).autoTable({
-      startY: 90,
-      head: [['Producto', 'Total Vendido', 'Cortes', 'Promedio']],
-      body: tableData,
+      startY: 109,
+      head: [['Producto', 'Total vendido', 'Cortes', 'Promedio']],
+      body: topProductosTable,
       theme: 'striped',
-      headStyles: { fillColor: [245, 158, 11] }
+      headStyles: { fillColor: [245, 158, 11] },
     });
 
-    // Tabla Inventario por Tipo
+    const inventarioTable = inventarioPorTipo.map((item) => [item.name, `${item.value.toFixed(2)} kg`]);
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
-    doc.text('Inventario por Tipo de Queso', 14, finalY);
-    
-    const inventarioData = inventarioPorTipo.map(item => [
-      item.name,
-      `${item.value.toFixed(2)} kg`
-    ]);
-
+    doc.text('Inventario por tipo', 14, finalY);
     (doc as any).autoTable({
       startY: finalY + 5,
-      head: [['Tipo de Queso', 'Peso Total']],
-      body: inventarioData,
+      head: [['Tipo de queso', 'Peso total']],
+      body: inventarioTable,
       theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] }
+      headStyles: { fillColor: [16, 185, 129] },
     });
 
-    doc.save(`Dashboard_Quesos_${fecha.replace(/\//g, '-')}.pdf`);
+    doc.save(`Dashboard_Quesos_${periodo}_${fecha.replace(/\//g, '-')}.pdf`);
   };
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
       <div className="dashboard-header">
         <div>
-          <h1>📊 Dashboard Analítico</h1>
-          <button 
-            className="btn-back" 
-            onClick={onVolver}
-            style={{ marginTop: '0.5rem' }}
-          >
-            ← Volver al Inventario
+          <h1>Dashboard Analitico</h1>
+          <p className="periodo-copy">Vista operativa para {periodoLabel}.</p>
+          <button className="btn-back" onClick={onVolver} style={{ marginTop: '0.5rem' }}>
+            Volver al inventario
           </button>
         </div>
         <div className="periodo-selector">
-          {['hoy', 'semana', 'mes'].map((p) => (
-            <button 
-              key={p}
-              className={periodo === p ? 'active' : ''}
-              onClick={() => setPeriodo(p as any)}
+          {(['hoy', 'semana', 'mes'] as Periodo[]).map((item) => (
+            <button
+              key={item}
+              className={periodo === item ? 'active' : ''}
+              onClick={() => setPeriodo(item)}
             >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
+              {item.charAt(0).toUpperCase() + item.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* KPIs */}
       <div className="kpis-grid">
         <div className="kpi-card">
-          <div className="kpi-icon">📦</div>
           <div className="kpi-content">
             <div className="kpi-value">{totalUnidades}</div>
-            <div className="kpi-label">Unidades en Stock</div>
+            <div className="kpi-label">Unidades en stock</div>
           </div>
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon">⚖️</div>
           <div className="kpi-content">
-            <div className="kpi-value">{(totalPeso / 1000).toFixed(1)} kg</div>
-            <div className="kpi-label">Peso Total</div>
+            <div className="kpi-value">{formatKg(totalPesoStock)} kg</div>
+            <div className="kpi-label">Peso total en stock</div>
           </div>
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon">✂️</div>
           <div className="kpi-content">
-            <div className="kpi-value">{totalCortes}</div>
-            <div className="kpi-label">Cortes Totales</div>
+            <div className="kpi-value">${valorInventario.toFixed(0)}</div>
+            <div className="kpi-label">Valor del inventario</div>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-content">
+            <div className="kpi-value">{totalCortesPeriodo}</div>
+            <div className="kpi-label">Cortes en {periodoLabel}</div>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-content">
+            <div className="kpi-value">{formatKg(pesoVendidoPeriodo)} kg</div>
+            <div className="kpi-label">Peso vendido en {periodoLabel}</div>
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-content">
+            <div className="kpi-value">{diasConMovimiento}</div>
+            <div className="kpi-label">Dias con movimiento</div>
           </div>
         </div>
       </div>
 
-      {/* Gráficos */}
       <div className="charts-grid">
-        {/* Top productos */}
-        <div className="chart-card" ref={topProductosRef}>
-          <h3>Top 5 Productos Vendidos</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topProductos.slice(0, 5)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="nombre" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="totalVendido" fill="#f59e0b" name="Peso Vendido (g)" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="chart-card">
+          <h3>Top 5 productos vendidos ({periodoLabel})</h3>
+          {topProductosPeriodo.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topProductosPeriodo.slice(0, 5)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="nombre" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="totalVendido" fill="#f59e0b" name="Peso vendido (g)" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="chart-empty">No hubo ventas registradas en este periodo.</div>
+          )}
         </div>
 
-        {/* Inventario por tipo */}
-        <div className="chart-card" ref={inventarioTipoRef}>
-          <h3>Inventario por Tipo de Queso</h3>
+        <div className="chart-card">
+          <h3>Ventas por dia ({periodoLabel})</h3>
+          {ventasPorFecha.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={ventasPorFecha}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis yAxisId="peso" />
+                <YAxis yAxisId="cortes" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="peso" dataKey="pesoKg" fill="#10b981" name="Peso vendido (kg)" />
+                <Bar yAxisId="cortes" dataKey="cantidadCortes" fill="#3b82f6" name="Cortes" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="chart-empty">No hay movimientos para graficar en este periodo.</div>
+          )}
+        </div>
+
+        <div className="chart-card">
+          <h3>Inventario por tipo de queso</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -317,13 +453,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, value }) => value > 0 ? `${name}: ${value.toFixed(1)}kg` : ''}
+                label={({ name, value }) => (value > 0 ? `${name}: ${value.toFixed(1)}kg` : '')}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
                 {inventarioPorTipo.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -332,45 +468,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Tabla de productos */}
       <div className="productos-table-card">
-        <h3>Detalle de Productos Más Vendidos</h3>
+        <h3>Detalle de productos mas vendidos ({periodoLabel})</h3>
         <table className="dashboard-table">
           <thead>
             <tr>
               <th>Producto</th>
-              <th>Total Vendido</th>
-              <th>Cantidad Cortes</th>
-              <th>Promedio por Corte</th>
+              <th>Total vendido</th>
+              <th>Cantidad cortes</th>
+              <th>Promedio por corte</th>
             </tr>
           </thead>
           <tbody>
-            {topProductos.map((prod, idx) => (
-              <tr key={idx}>
-                <td>{prod.nombre}</td>
-                <td>{(parseFloat(prod.totalVendido || 0) / 1000).toFixed(2)} kg</td>
-                <td>{prod.cantidadCortes}</td>
-                <td>{(parseFloat(prod.promedioCorte || 0)).toFixed(0)} g</td>
+            {topProductosPeriodo.length > 0 ? (
+              topProductosPeriodo.map((producto) => (
+                <tr key={producto.nombre}>
+                  <td>{producto.nombre}</td>
+                  <td>{formatKg(producto.totalVendido)} kg</td>
+                  <td>{producto.cantidadCortes}</td>
+                  <td>{producto.promedioCorte.toFixed(0)} g</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="table-empty">
+                  No hubo ventas registradas en {periodoLabel}.
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Botones de exportación */}
       <div className="export-buttons">
-        <button 
-          className="btn-export"
-          onClick={exportarExcel}
-        >
-          📊 Exportar a Excel
+        <button className="btn-export" onClick={exportarExcel}>
+          Exportar a Excel
         </button>
-        <button 
-          className="btn-export"
-          onClick={exportarPDF}
-          style={{ background: '#dc2626' }}
-        >
-          📄 Exportar a PDF
+        <button className="btn-export btn-export-danger" onClick={exportarPDF}>
+          Exportar a PDF
         </button>
       </div>
     </div>
