@@ -77,6 +77,46 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.custom-range-card {
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.custom-range-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.custom-range-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.custom-range-grid input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+}
+
+.custom-range-button {
+  width: 100%;
+}
+
+.custom-range-error {
+  margin-top: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .kpis-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -227,6 +267,10 @@
 
   .periodo-selector {
     width: 100%;
+  }
+
+  .custom-range-grid {
+    grid-template-columns: 1fr;
   }
 
   .kpis-grid {

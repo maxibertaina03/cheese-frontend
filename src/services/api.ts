@@ -1,6 +1,19 @@
 // src/services/api.ts
 const API_URL = process.env.REACT_APP_API_URL;
 
+const buildQueryString = (params: Record<string, string | number | undefined>) => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      searchParams.set(key, String(value));
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+};
+
 export const createApiFetch = (
   token: string | undefined,
   onUnauthorized: () => void
@@ -136,7 +149,18 @@ export const apiService = {
     }),
 
   // Reportes
-  getDashboard: (apiFetch: any) => apiFetch(`${API_URL}/api/reportes/dashboard`),
+  getDashboard: (
+    apiFetch: any,
+    params?: { fechaInicio?: string; fechaFin?: string }
+  ) => apiFetch(`${API_URL}/api/reportes/dashboard${buildQueryString(params || {})}`),
+
+  downloadReporte: (
+    apiFetch: any,
+    formato: 'excel' | 'pdf',
+    params?: { fechaInicio?: string; fechaFin?: string }
+  ) => apiFetch(`${API_URL}/api/reportes/export/${formato}${buildQueryString(params || {})}`, {
+    headers: {},
+  }),
 
   // Elementos
   getElementos: (apiFetch: any) => 

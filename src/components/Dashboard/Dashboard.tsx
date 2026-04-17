@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -12,14 +12,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import { apiService } from '../../services/api';
 import { User } from '../../types';
 import './Dashboard.css';
 
-type Periodo = 'hoy' | 'semana' | 'mes';
+type Periodo = 'hoy' | 'semana' | 'mes' | 'personalizado';
 
 interface DashboardProps {
   user: User;
@@ -57,10 +54,20 @@ interface DashboardTopProducto {
 
 interface DashboardData {
   inventarioActual: DashboardInventario[];
-  ventas: Record<Periodo, DashboardVenta[]>;
+  ventas: {
+    hoy: DashboardVenta[];
+    semana: DashboardVenta[];
+    mes: DashboardVenta[];
+    personalizado?: DashboardVenta[];
+  };
   topProductos: DashboardTopProducto[];
   inventarioValorizado: DashboardInventario[];
   alertas: any[];
+  periodoActual?: {
+    tipo: 'hoy' | 'semana' | 'mes' | 'personalizado';
+    fechaInicio: string | null;
+    fechaFin: string | null;
+  };
 }
 
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6'];
@@ -69,6 +76,7 @@ const PERIODO_LABELS: Record<Periodo, string> = {
   hoy: 'hoy',
   semana: 'ultimos 7 dias',
   mes: 'ultimos 30 dias',
+  personalizado: 'rango personalizado',
 };
 
 const toNumber = (value: unknown) => {
@@ -131,11 +139,21 @@ const agruparVentasPorFecha = (ventas: DashboardVenta[]) => {
     existente.totalPeso += toNumber(venta.totalPeso);
     existente.cantidadCortes += toNumber(venta.cantidadCortes);
     existente.pesoKg = Number((existente.totalPeso / 1000).toFixed(2));
-
     fechas.set(fecha, existente);
   });
 
   return Array.from(fechas.values()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+};
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -143,33 +161,106 @@ export const Dashboard: React.FC<DashboardProps> = ({
   apiFetch,
   onVolver,
   unidades = [],
-  historialUnidades: _historialUnidades = [],
-  productos: _productos = [],
 }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState<Periodo>('semana');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [customError, setCustomError] = useState('');
+  const [customLoading, setCustomLoading] = useState(false);
+  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
 
-  const fetchDashboard = useCallback(async () => {
-    try {
-      const response = await apiService.getDashboard(apiFetch);
+  const fetchDashboard = useCallback(
+    async (params?: { fechaInicio?: string; fechaFin?: string }) => {
+      try {
+        const response = await apiService.getDashboard(apiFetch, params);
 
-      if (!response.ok) {
-        throw new Error('No se pudo cargar el dashboard');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.error || 'No se pudo cargar el dashboard');
+        }
+
+        const dashboardData = await response.json();
+        setData(dashboardData);
+      } catch (error) {
+        console.error('Error al cargar dashboard:', error);
+      } finally {
+        setLoading(false);
+        setCustomLoading(false);
       }
-
-      const dashboardData = await response.json();
-      setData(dashboardData);
-    } catch (error) {
-      console.error('Error al cargar dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiFetch]);
+    },
+    [apiFetch]
+  );
 
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+
+  const handlePeriodoClick = async (nextPeriodo: Exclude<Periodo, 'personalizado'>) => {
+    setPeriodo(nextPeriodo);
+    setCustomError('');
+
+    if (data?.periodoActual?.tipo === 'personalizado') {
+      setLoading(true);
+      await fetchDashboard();
+    }
+  };
+
+  const aplicarRangoPersonalizado = async () => {
+    if (!customStart || !customEnd) {
+      setCustomError('Completá fecha desde y fecha hasta.');
+      return;
+    }
+
+    if (customStart > customEnd) {
+      setCustomError('La fecha desde no puede ser mayor a la fecha hasta.');
+      return;
+    }
+
+    setCustomError('');
+    setPeriodo('personalizado');
+    setCustomLoading(true);
+    await fetchDashboard({ fechaInicio: customStart, fechaFin: customEnd });
+  };
+
+  const exportarReporte = async (formato: 'excel' | 'pdf') => {
+    try {
+      setExporting(formato);
+
+      const params =
+        periodo === 'personalizado' && customStart && customEnd
+          ? { fechaInicio: customStart, fechaFin: customEnd }
+          : undefined;
+
+      const response = await apiService.downloadReporte(apiFetch, formato, params);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `No se pudo exportar ${formato}`);
+      }
+
+      const blob = await response.blob();
+      const suffix =
+        periodo === 'personalizado' && customStart && customEnd
+          ? `${customStart}_${customEnd}`
+          : periodo;
+
+      downloadBlob(blob, `reporte_${suffix}.${formato === 'excel' ? 'xlsx' : 'pdf'}`);
+    } catch (error) {
+      console.error(`Error al exportar ${formato}:`, error);
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const periodoLabel = useMemo(() => {
+    if (periodo === 'personalizado' && customStart && customEnd) {
+      return `${customStart} a ${customEnd}`;
+    }
+
+    return PERIODO_LABELS[periodo];
+  }, [customEnd, customStart, periodo]);
 
   if (loading) {
     return (
@@ -184,9 +275,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return null;
   }
 
-  const periodoLabel = PERIODO_LABELS[periodo];
-  const ventasPeriodo = data.ventas?.[periodo] ?? [];
-  const topProductosPeriodo = agruparTopProductos(ventasPeriodo);
+  const ventasPeriodo =
+    periodo === 'personalizado' ? data.ventas.personalizado ?? [] : data.ventas?.[periodo] ?? [];
+  const topProductosPeriodo =
+    periodo === 'personalizado'
+      ? data.topProductos ?? []
+      : agruparTopProductos(ventasPeriodo);
   const ventasPorFecha = agruparVentasPorFecha(ventasPeriodo);
   const inventarioActual =
     data.inventarioActual?.length > 0
@@ -235,109 +329,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
   const diasConMovimiento = ventasPorFecha.length;
 
-  const exportarExcel = () => {
-    const workbook = XLSX.utils.book_new();
-    const resumen = [
-      { Indicador: 'Periodo analizado', Valor: periodoLabel },
-      { Indicador: 'Unidades en stock', Valor: totalUnidades },
-      { Indicador: 'Peso total en stock (kg)', Valor: formatKg(totalPesoStock) },
-      { Indicador: 'Valor del inventario', Valor: valorInventario.toFixed(2) },
-      { Indicador: 'Cortes del periodo', Valor: totalCortesPeriodo },
-      { Indicador: 'Peso vendido en el periodo (kg)', Valor: formatKg(pesoVendidoPeriodo) },
-      { Indicador: 'Dias con movimiento', Valor: diasConMovimiento },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(resumen), 'Resumen');
-
-    const ventasData = ventasPorFecha.map((venta) => ({
-      Fecha: venta.label,
-      'Peso vendido (kg)': venta.pesoKg.toFixed(2),
-      Cortes: venta.cantidadCortes,
-    }));
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(ventasData.length ? ventasData : [{ Fecha: 'Sin datos', 'Peso vendido (kg)': '0.00', Cortes: 0 }]),
-      'Ventas periodo'
-    );
-
-    const topProductosData = topProductosPeriodo.map((producto) => ({
-      Producto: producto.nombre,
-      'Total vendido (kg)': formatKg(producto.totalVendido),
-      'Cantidad de cortes': producto.cantidadCortes,
-      'Promedio por corte (g)': producto.promedioCorte.toFixed(0),
-    }));
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(
-        topProductosData.length
-          ? topProductosData
-          : [{ Producto: 'Sin ventas', 'Total vendido (kg)': '0.00', 'Cantidad de cortes': 0, 'Promedio por corte (g)': '0' }]
-      ),
-      'Top productos'
-    );
-
-    const inventarioData = inventarioPorTipo.map((item) => ({
-      'Tipo de queso': item.name,
-      'Peso total (kg)': item.value.toFixed(2),
-    }));
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(inventarioData), 'Inventario');
-
-    XLSX.writeFile(workbook, `Dashboard_Quesos_${periodo}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  const exportarPDF = () => {
-    const doc = new jsPDF();
-    const fecha = new Date().toLocaleDateString('es-AR');
-
-    doc.setFontSize(20);
-    doc.text('Dashboard - Stock de Quesos', 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Fecha: ${fecha}`, 14, 29);
-    doc.text(`Periodo: ${periodoLabel}`, 14, 36);
-
-    doc.setFontSize(14);
-    doc.text('Resumen general', 14, 50);
-    doc.setFontSize(11);
-    doc.text(`Unidades en stock: ${totalUnidades}`, 14, 60);
-    doc.text(`Peso total en stock: ${formatKg(totalPesoStock)} kg`, 14, 67);
-    doc.text(`Valor del inventario: $${valorInventario.toFixed(2)}`, 14, 74);
-    doc.text(`Cortes del periodo: ${totalCortesPeriodo}`, 14, 81);
-    doc.text(`Peso vendido: ${formatKg(pesoVendidoPeriodo)} kg`, 14, 88);
-
-    const topProductosTable = topProductosPeriodo.length
-      ? topProductosPeriodo.map((producto) => [
-          producto.nombre,
-          `${formatKg(producto.totalVendido)} kg`,
-          producto.cantidadCortes.toString(),
-          `${producto.promedioCorte.toFixed(0)} g`,
-        ])
-      : [['Sin ventas', '0.00 kg', '0', '0 g']];
-
-    doc.setFontSize(14);
-    doc.text('Top productos del periodo', 14, 104);
-    (doc as any).autoTable({
-      startY: 109,
-      head: [['Producto', 'Total vendido', 'Cortes', 'Promedio']],
-      body: topProductosTable,
-      theme: 'striped',
-      headStyles: { fillColor: [245, 158, 11] },
-    });
-
-    const inventarioTable = inventarioPorTipo.map((item) => [item.name, `${item.value.toFixed(2)} kg`]);
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.text('Inventario por tipo', 14, finalY);
-    (doc as any).autoTable({
-      startY: finalY + 5,
-      head: [['Tipo de queso', 'Peso total']],
-      body: inventarioTable,
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
-    });
-
-    doc.save(`Dashboard_Quesos_${periodo}_${fecha.replace(/\//g, '-')}.pdf`);
-  };
-
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
@@ -349,16 +340,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
         <div className="periodo-selector">
-          {(['hoy', 'semana', 'mes'] as Periodo[]).map((item) => (
+          {(['hoy', 'semana', 'mes'] as Array<Exclude<Periodo, 'personalizado'>>).map((item) => (
             <button
               key={item}
               className={periodo === item ? 'active' : ''}
-              onClick={() => setPeriodo(item)}
+              onClick={() => void handlePeriodoClick(item)}
             >
               {item.charAt(0).toUpperCase() + item.slice(1)}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="custom-range-card">
+        <div className="custom-range-grid">
+          <label>
+            <span>Desde</span>
+            <input
+              type="date"
+              value={customStart}
+              onChange={(event) => setCustomStart(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(event) => setCustomEnd(event.target.value)}
+            />
+          </label>
+          <button
+            className="btn-export custom-range-button"
+            onClick={() => void aplicarRangoPersonalizado()}
+            disabled={customLoading}
+          >
+            {customLoading ? 'Aplicando...' : 'Aplicar rango'}
+          </button>
+        </div>
+        {customError ? <div className="custom-range-error">{customError}</div> : null}
       </div>
 
       <div className="kpis-grid">
@@ -501,11 +521,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       <div className="export-buttons">
-        <button className="btn-export" onClick={exportarExcel}>
-          Exportar a Excel
+        <button
+          className="btn-export"
+          onClick={() => void exportarReporte('excel')}
+          disabled={exporting !== null}
+        >
+          {exporting === 'excel' ? 'Exportando Excel...' : 'Exportar a Excel'}
         </button>
-        <button className="btn-export btn-export-danger" onClick={exportarPDF}>
-          Exportar a PDF
+        <button
+          className="btn-export btn-export-danger"
+          onClick={() => void exportarReporte('pdf')}
+          disabled={exporting !== null}
+        >
+          {exporting === 'pdf' ? 'Exportando PDF...' : 'Exportar a PDF'}
         </button>
       </div>
     </div>
