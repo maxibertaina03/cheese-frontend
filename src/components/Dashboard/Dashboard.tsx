@@ -94,6 +94,35 @@ const toNumber = (value: unknown) => {
 
 const formatKg = (grams: number) => (grams / 1000).toFixed(2);
 
+const normalizeDateKey = (value: unknown) => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+  }
+
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+};
+
+const formatShortDateLabel = (value: unknown) => {
+  const dateKey = normalizeDateKey(value);
+  if (!dateKey) {
+    return '-';
+  }
+
+  return new Date(`${dateKey}T00:00:00`).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+};
+
 const agruparTopProductos = (ventas: DashboardVenta[]) => {
   const productos = new Map<string, DashboardTopProducto>();
 
@@ -123,11 +152,12 @@ const agruparVentasPorFecha = (ventas: DashboardVenta[]) => {
   >();
 
   ventas.forEach((venta) => {
-    const fecha = venta.fecha;
-    const label = new Date(`${fecha}T00:00:00`).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-    });
+    const fecha = normalizeDateKey(venta.fecha);
+    if (!fecha) {
+      return;
+    }
+
+    const label = formatShortDateLabel(fecha);
     const existente = fechas.get(fecha) ?? {
       fecha,
       label,
@@ -230,14 +260,19 @@ const buildFallbackDashboard = (
 
     const grouped = new Map<string, DashboardVenta>();
     allVentas.forEach((venta) => {
-      const fecha = new Date(`${venta.fecha}T00:00:00`);
+      const dateKey = normalizeDateKey(venta.fecha);
+      if (!dateKey) {
+        return;
+      }
+
+      const fecha = new Date(`${dateKey}T00:00:00`);
       if (fecha < range.start || fecha > range.end) {
         return;
       }
 
-      const key = `${venta.fecha}-${venta.producto}-${venta.motivo ?? ''}`;
+      const key = `${dateKey}-${venta.producto}-${venta.motivo ?? ''}`;
       const existente = grouped.get(key) ?? {
-        fecha: venta.fecha,
+        fecha: dateKey,
         producto: venta.producto,
         motivo: venta.motivo,
         totalPeso: 0,
