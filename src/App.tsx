@@ -35,7 +35,7 @@ const downloadBlob = (blob: Blob, filename: string) => {
 };
 
 function App() {
-  const { user, setUser, authLoading } = useAuth();
+  const { user, setUser, logout, authLoading } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [tiposQueso, setTiposQueso] = useState<TipoQueso[]>([]);
@@ -408,6 +408,13 @@ function App() {
         onOpenElementos={() => {
           setVistaActual('elementos');
           setShowForm(false);
+        }}
+        onLogout={() => {
+          setShowForm(false);
+          setShowAdmin(false);
+          setVistaActual('inventario');
+          setDataLoaded(false);
+          logout();
         }}
         showForm={showForm}
       />
