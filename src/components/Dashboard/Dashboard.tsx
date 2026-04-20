@@ -156,14 +156,130 @@ const downloadBlob = (blob: Blob, filename: string) => {
   window.URL.revokeObjectURL(url);
 };
 
+const startOfDay = (date: Date) => {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+};
+
+const endOfDay = (date: Date) => {
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+};
+
+const buildFallbackDashboard = (
+  unidades: any[],
+  historialUnidades: any[],
+  params?: { fechaInicio?: string; fechaFin?: string }
+): DashboardData => {
+  const now = new Date();
+  const ranges = {
+    hoy: { start: startOfDay(now), end: endOfDay(now) },
+    semana: { start: startOfDay(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)), end: endOfDay(now) },
+    mes: { start: startOfDay(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)), end: endOfDay(now) },
+    personalizado: params?.fechaInicio && params?.fechaFin
+      ? { start: startOfDay(new Date(params.fechaInicio)), end: endOfDay(new Date(params.fechaFin)) }
+      : null,
+  };
+
+  const inventarioMap = new Map<string, DashboardInventario>();
+  unidades
+    .filter((unidad) => unidad?.activa)
+    .forEach((unidad) => {
+      const tipo = unidad.producto?.tipoQueso?.nombre || 'Sin tipo';
+      const existente = inventarioMap.get(tipo) ?? { tipoQueso: tipo, cantidad: 0, pesoTotal: 0 };
+      existente.cantidad += 1;
+      existente.pesoTotal += toNumber(unidad.pesoActual);
+      inventarioMap.set(tipo, existente);
+    });
+
+  const valorizadoMap = new Map<string, DashboardInventario>();
+  unidades
+    .filter((unidad) => unidad?.activa && unidad.producto?.precioPorKilo)
+    .forEach((unidad) => {
+      const producto = unidad.producto.nombre || 'Sin producto';
+      const precioKilo = toNumber(unidad.producto.precioPorKilo);
+      const existente = valorizadoMap.get(producto) ?? {
+        producto,
+        cantidad: 0,
+        pesoTotal: 0,
+        precioKilo,
+        valorTotal: 0,
+      };
+      existente.cantidad += 1;
+      existente.pesoTotal += toNumber(unidad.pesoActual);
+      existente.valorTotal = (existente.valorTotal ?? 0) + (toNumber(unidad.pesoActual) * precioKilo) / 1000;
+      valorizadoMap.set(producto, existente);
+    });
+
+  const allVentas = historialUnidades.flatMap((unidad) =>
+    (unidad.particiones || []).map((particion: any) => ({
+      fecha: String(particion.createdAt || '').slice(0, 10),
+      producto: unidad.producto?.nombre || 'Sin producto',
+      totalPeso: toNumber(particion.peso),
+      cantidadCortes: 1,
+      motivo: particion.motivo?.nombre ?? null,
+    }))
+  );
+
+  const ventasForRange = (range: { start: Date; end: Date } | null) => {
+    if (!range) {
+      return [];
+    }
+
+    const grouped = new Map<string, DashboardVenta>();
+    allVentas.forEach((venta) => {
+      const fecha = new Date(`${venta.fecha}T00:00:00`);
+      if (fecha < range.start || fecha > range.end) {
+        return;
+      }
+
+      const key = `${venta.fecha}-${venta.producto}-${venta.motivo ?? ''}`;
+      const existente = grouped.get(key) ?? {
+        fecha: venta.fecha,
+        producto: venta.producto,
+        motivo: venta.motivo,
+        totalPeso: 0,
+        cantidadCortes: 0,
+      };
+      existente.totalPeso += venta.totalPeso;
+      existente.cantidadCortes += venta.cantidadCortes;
+      grouped.set(key, existente);
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  };
+
+  const ventas = {
+    hoy: ventasForRange(ranges.hoy),
+    semana: ventasForRange(ranges.semana),
+    mes: ventasForRange(ranges.mes),
+    personalizado: ventasForRange(ranges.personalizado),
+  };
+
+  return {
+    inventarioActual: Array.from(inventarioMap.values()),
+    ventas,
+    topProductos: agruparTopProductos(ventas.personalizado.length ? ventas.personalizado : ventas.semana),
+    inventarioValorizado: Array.from(valorizadoMap.values()),
+    alertas: [],
+    periodoActual: params?.fechaInicio && params?.fechaFin
+      ? { tipo: 'personalizado', fechaInicio: params.fechaInicio, fechaFin: params.fechaFin }
+      : { tipo: 'semana', fechaInicio: null, fechaFin: null },
+  };
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({
   user: _user,
   apiFetch,
   onVolver,
   unidades = [],
+  historialUnidades = [],
 }) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
   const [periodo, setPeriodo] = useState<Periodo>('semana');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -183,14 +299,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         const dashboardData = await response.json();
         setData(dashboardData);
+        setDashboardError('');
       } catch (error) {
         console.error('Error al cargar dashboard:', error);
+        setData(buildFallbackDashboard(unidades, historialUnidades, params));
+        setDashboardError('No se pudo cargar el dashboard desde el servidor. Se muestran datos locales.');
       } finally {
         setLoading(false);
         setCustomLoading(false);
       }
     },
-    [apiFetch]
+    [apiFetch, historialUnidades, unidades]
   );
 
   useEffect(() => {
@@ -272,7 +391,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }
 
   if (!data) {
-    return null;
+    return (
+      <div className="dashboard-container">
+        <div className="chart-empty">No hay datos disponibles para mostrar.</div>
+        <button className="btn-back" onClick={onVolver}>
+          Volver al inventario
+        </button>
+      </div>
+    );
   }
 
   const ventasPeriodo =
@@ -351,6 +477,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           ))}
         </div>
       </div>
+
+      {dashboardError ? <div className="custom-range-error">{dashboardError}</div> : null}
 
       <div className="custom-range-card">
         <div className="custom-range-grid">

@@ -1,7 +1,7 @@
 // src/services/api.ts
 const API_URL = process.env.REACT_APP_API_URL;
 
-const buildQueryString = (params: Record<string, string | number | undefined>) => {
+const buildQueryString = (params: Record<string, string | number | boolean | undefined>) => {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -159,6 +159,30 @@ export const apiService = {
     formato: 'excel' | 'pdf',
     params?: { fechaInicio?: string; fechaFin?: string }
   ) => apiFetch(`${API_URL}/api/reportes/export/${formato}${buildQueryString(params || {})}`, {
+    headers: {},
+  }),
+
+  downloadInventarioPdf: (
+    apiFetch: any,
+    params?: {
+      search?: string;
+      tipoQuesoId?: number;
+      searchObservaciones?: 'true' | 'false';
+    }
+  ) => apiFetch(`${API_URL}/api/reportes/export/inventario/pdf${buildQueryString(params || {})}`, {
+    headers: {},
+  }),
+
+  downloadHistorialPdf: (
+    apiFetch: any,
+    params?: {
+      search?: string;
+      tipoQuesoId?: number;
+      estado?: 'todos' | 'activos' | 'agotados';
+      fechaInicio?: string;
+      fechaFin?: string;
+    }
+  ) => apiFetch(`${API_URL}/api/reportes/export/historial/pdf${buildQueryString(params || {})}`, {
     headers: {},
   }),
 

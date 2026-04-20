@@ -119,7 +119,9 @@ export const ProductosManager: React.FC<ProductosManagerProps> = ({
                   {producto.seVendePorUnidad ? 'Por unidad' : 'Por peso'}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  {producto.precio ? `$${producto.precio.toFixed(2)}` : '-'}
+                  {producto.precioPorKilo !== null && producto.precioPorKilo !== undefined
+                    ? `$${producto.precioPorKilo.toFixed(2)}`
+                    : '-'}
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>

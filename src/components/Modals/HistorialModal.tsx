@@ -1,6 +1,6 @@
 // src/components/Modals/HistorialModal.tsx
 import React, { useState } from 'react';
-import { Unidad, User } from '../../types';
+import { TipoQueso, Unidad, User } from '../../types';
 import { UnidadCard } from '../Inventory/UnidadCard';
 import { DeleteConfirmModal } from '../Admin/DeleteConfirmModal';
 import { usePermissions } from '../../utils/permissions';
@@ -9,6 +9,7 @@ interface HistorialModalProps {
   user: User | null;
   show: boolean;
   unidades: Unidad[];
+  tiposQueso: TipoQueso[];
   stats: {
     total: number;
     activos: number;
@@ -38,6 +39,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({
   user,
   show,
   unidades,
+  tiposQueso,
   stats,
   filtroHistorial,
   busquedaHistorial,
@@ -176,9 +178,11 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({
                 onChange={(e) => onSetTipoQueso(e.target.value)}
               >
                 <option value="todos">Todos los tipos</option>
-                <option value="blando">Blando</option>
-                <option value="semi-duro">Semi-duro</option>
-                <option value="duro">Duro</option>
+                {tiposQueso.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 

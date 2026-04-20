@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import { Unidad, TipoQueso } from './types';
-import { createApiFetch } from './services/api';
+import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { useInventory } from './hooks/useInventory';
 import { useHistorial } from './hooks/useHistorial';
@@ -21,6 +21,18 @@ import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';
 import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
+import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+};
 
 function App() {
   const { user, setUser, authLoading } = useAuth();
@@ -28,6 +40,8 @@ function App() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [tiposQueso, setTiposQueso] = useState<TipoQueso[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [exportingInventarioPdf, setExportingInventarioPdf] = useState(false);
+  const [exportingHistorialPdf, setExportingHistorialPdf] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
   const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos'>('inventario');
@@ -70,6 +84,8 @@ function App() {
     updateUnidad,
     createParticion,
     deleteUnidad,
+    setError,
+    setSuccess,
   } = useInventory(apiFetch);
 
   const {
@@ -294,6 +310,77 @@ function App() {
     setShowForm(!showForm);
   };
 
+  const handleExportInventarioPdf = async (
+    params: {
+      search?: string;
+      tipoQuesoId?: number;
+      searchObservaciones?: 'true' | 'false';
+    },
+    visibleRows: Unidad[]
+  ) => {
+    const filename = `inventario_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    try {
+      setExportingInventarioPdf(true);
+      const response = await apiService.downloadInventarioPdf(apiFetch, params);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+      setSuccess('PDF de inventario exportado correctamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al exportar inventario:', error);
+      exportInventarioPdfLocal(visibleRows, filename);
+      setError('El backend no devolvio el PDF. Se genero una copia local con los datos visibles.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setExportingInventarioPdf(false);
+    }
+  };
+
+  const handleExportHistorialPdf = async (
+    params: {
+      search?: string;
+      tipoQuesoId?: number;
+      estado?: 'todos' | 'activos' | 'agotados';
+      fechaInicio?: string;
+      fechaFin?: string;
+    },
+    visibleRows: Unidad[]
+  ) => {
+    const suffix = params.fechaInicio && params.fechaFin
+      ? `${params.fechaInicio}_${params.fechaFin}`
+      : new Date().toISOString().slice(0, 10);
+    const filename = `historial_${suffix}.pdf`;
+
+    try {
+      setExportingHistorialPdf(true);
+      const response = await apiService.downloadHistorialPdf(apiFetch, params);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+      setSuccess('PDF de historial exportado correctamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al exportar historial:', error);
+      exportHistorialPdfLocal(visibleRows, filename);
+      setError('El backend no devolvio el PDF. Se genero una copia local con los datos visibles.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setExportingHistorialPdf(false);
+    }
+  };
+
   if (authLoading) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Verificando sesion...</div>;
   }
@@ -342,16 +429,20 @@ function App() {
 
           <InventoryList
             unidades={unidades.filter(u => u.activa)}
+            tiposQueso={tiposQueso}
             user={user}
             onEdit={handleOpenEditModal}
             onCut={handleOpenCutModal}
             onDelete={handleDeleteUnidad}
+            onExportPdf={handleExportInventarioPdf}
+            exportingPdf={exportingInventarioPdf}
           />
         </>
       ) : vistaActual === 'historial' ? (
         <HistorialView
           user={user}
           unidades={historialFiltrado}
+          tiposQueso={tiposQueso}
           stats={statsHistorial}
           filtroHistorial={filtroHistorial}
           busquedaHistorial={busquedaHistorial}
@@ -367,6 +458,8 @@ function App() {
           getUnidadesAgotadas={getUnidadesAgotadasProducto}
           getPesoVendido={getPesoVendidoProducto}
           onDeleteUnidad={deleteUnidadPermanente}
+          onExportPdf={handleExportHistorialPdf}
+          exportingPdf={exportingHistorialPdf}
           onVolver={() => setVistaActual('inventario')}
         />
       ) : vistaActual === 'elementos' ? (

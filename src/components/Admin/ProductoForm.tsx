@@ -24,7 +24,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     plu: '',
     seVendePorUnidad: false,
     tipoQuesoId: tiposQueso[0]?.id || 0,
-    precio: undefined,
+    precioPorKilo: null,
   });
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         plu: producto.plu,
         seVendePorUnidad: producto.seVendePorUnidad,
         tipoQuesoId: producto.tipoQueso.id,
-        precio: producto.precio,
+        precioPorKilo: producto.precioPorKilo ?? null,
       });
     }
   }, [producto]);
@@ -102,8 +102,13 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
             <input
               type="number"
               className="form-input"
-              value={formData.precio || ''}
-              onChange={(e) => setFormData({ ...formData, precio: Number(e.target.value) || undefined })}
+              value={formData.precioPorKilo ?? ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  precioPorKilo: e.target.value ? Number(e.target.value) : null,
+                })
+              }
               placeholder="0.00"
               step="0.01"
             />

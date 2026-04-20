@@ -68,6 +68,7 @@ body {
 .badge-blando { background: #fef3c7; color: #92400e; }
 .badge-semi-duro { background: #fed7aa; color: #9a3412; }
 .badge-duro { background: #fecaca; color: #991b1b; }
+.badge-especial { background: #dbeafe; color: #1e40af; }
 .badge-plu { background: #f3f4f6; color: #4b5563; font-family: 'Courier New', monospace; }
 .badge-status { background: #d1fae5; color: #065f46; }
 .badge-inactive { background: #fee2e2; color: #991b1b; }

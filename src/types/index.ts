@@ -10,7 +10,7 @@ export interface Producto {
   plu: string;
   seVendePorUnidad: boolean;
   tipoQueso: TipoQueso;
-  precio?: number;           // ← Nuevo campo opcional
+  precioPorKilo?: number | null;
   activo?: boolean;          // ← Para soft delete
 }
 
@@ -54,7 +54,7 @@ export interface CreateProductoData {
   plu: string;
   seVendePorUnidad: boolean;
   tipoQuesoId: number;
-  precio?: number;
+  precioPorKilo?: number | null;
 }
 
 export interface UsuarioMini {

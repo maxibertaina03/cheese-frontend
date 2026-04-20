@@ -40,6 +40,7 @@ export const UnidadCard: React.FC<UnidadCardProps> = ({
       'blando': 'badge-blando',
       'semi-duro': 'badge-semi-duro',
       'duro': 'badge-duro',
+      'especial': 'badge-especial',
     };
     return tipos[tipo?.toLowerCase()] || 'badge-blando';
   };

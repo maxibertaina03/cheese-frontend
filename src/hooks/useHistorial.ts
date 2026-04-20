@@ -29,8 +29,7 @@ export const useHistorial = (apiFetch: any) => {
       if (filtroHistorial === 'agotados' && unidad.activa) return false;
 
       // Filtro por tipo de queso
-      if (tipoQuesoFiltro !== 'todos' && 
-          unidad.producto.tipoQueso.nombre.toLowerCase() !== tipoQuesoFiltro) {
+      if (tipoQuesoFiltro !== 'todos' && String(unidad.producto.tipoQueso.id) !== tipoQuesoFiltro) {
         return false;
       }
 
