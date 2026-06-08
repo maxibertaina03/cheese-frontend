@@ -222,4 +222,84 @@ export const apiService = {
   getElementoMovimientos: (apiFetch: any, id: number) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/movimientos`),
 
+  // Proveedores
+  getProveedores: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),
+
+  createProveedor: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateProveedor: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteProveedor: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Indumentaria
+  getIndumentaria: (apiFetch: any, params?: { categoria?: string; proveedorId?: number }) => {
+    const qs = buildQueryString(params || {});
+    return apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria${qs}`);
+  },
+
+  getIndumentariaBajos: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/reporte/bajos`),
+
+  createIndumentaria: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateIndumentaria: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteIndumentaria: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}`, {
+      method: 'DELETE',
+    }),
+
+  indumentariaIngreso: (
+    apiFetch: any,
+    id: number,
+    data: { cantidad: number; proveedorId?: number | null; documentoReferencia?: string | null; observaciones?: string | null }
+  ) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}/ingreso`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  indumentariaEgreso: (
+    apiFetch: any,
+    id: number,
+    data: { cantidad: number; destino: string; observaciones?: string | null }
+  ) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}/egreso`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  indumentariaAjuste: (
+    apiFetch: any,
+    id: number,
+    data: { cantidad: number; motivo: string; observaciones?: string | null }
+  ) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}/ajuste`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getIndumentariaMovimientos: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/indumentaria/${id}/movimientos`),
+
 };

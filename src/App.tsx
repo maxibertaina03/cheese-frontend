@@ -21,6 +21,9 @@ import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';
 import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
+import { useIndumentaria } from './hooks/useIndumentaria';
+import { useProveedores } from './hooks/useProveedores';
+import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
 
 const downloadBlob = (blob: Blob, filename: string) => {
@@ -44,7 +47,7 @@ function App() {
   const [exportingHistorialPdf, setExportingHistorialPdf] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
-  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos'>('inventario');
+  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria'>('inventario');
   
   const [unidadEliminando, setUnidadEliminando] = useState<Unidad | null>(null);
   
@@ -131,6 +134,31 @@ function App() {
     registrarEgreso,
   } = useElementos(apiFetch);
 
+  const {
+    indumentaria,
+    loading: loadingIndumentaria,
+    error: errorIndumentaria,
+    success: successIndumentaria,
+    fetchIndumentaria,
+    fetchMovimientos: fetchMovimientosIndumentaria,
+    createIndumentaria,
+    updateIndumentaria,
+    deleteIndumentaria,
+    registrarIngreso: registrarIngresoIndumentaria,
+    registrarEgreso: registrarEgresoIndumentaria,
+  } = useIndumentaria(apiFetch);
+
+  const {
+    proveedores,
+    loading: loadingProveedores,
+    error: errorProveedores,
+    success: successProveedores,
+    fetchProveedores,
+    createProveedor,
+    updateProveedor,
+    deleteProveedor,
+  } = useProveedores(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -151,12 +179,14 @@ function App() {
           fetchTiposQueso(),
           fetchHistorial(),
           fetchElementos(),
+          fetchIndumentaria(),
+          fetchProveedores(),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores]);
   const historialCargado = useRef(false);
 
   
@@ -181,6 +211,7 @@ function App() {
     await Promise.all([
       fetchProductosAdmin(),
       fetchUsuarios(),
+      fetchProveedores(),
     ]);
     setShowAdmin(true);
   };
@@ -298,8 +329,18 @@ function App() {
           { label: 'Productos', value: productos.length },
         ];
 
-  const activeError = vistaActual === 'elementos' ? errorElementos : error;
-  const activeSuccess = vistaActual === 'elementos' ? successElementos : success;
+  const activeError =
+    vistaActual === 'elementos'
+      ? errorElementos
+      : vistaActual === 'indumentaria'
+      ? errorIndumentaria
+      : error;
+  const activeSuccess =
+    vistaActual === 'elementos'
+      ? successElementos
+      : vistaActual === 'indumentaria'
+      ? successIndumentaria
+      : success;
 
   const handleNewIngreso = () => {
     if (vistaActual !== 'inventario') {
@@ -391,7 +432,13 @@ function App() {
     <div className="app">
       <Header
         user={user}
-        title={vistaActual === 'elementos' ? 'Stock de Elementos' : 'Stock de Quesos'}
+        title={
+          vistaActual === 'elementos'
+            ? 'Stock de Elementos'
+            : vistaActual === 'indumentaria'
+            ? 'Stock de Indumentaria'
+            : 'Stock de Quesos'
+        }
         subtitle="Las Tres Estrellas"
         stats={headerStats}
         onNewIngreso={handleNewIngreso}
@@ -407,6 +454,10 @@ function App() {
         }}
         onOpenElementos={() => {
           setVistaActual('elementos');
+          setShowForm(false);
+        }}
+        onOpenIndumentaria={() => {
+          setVistaActual('indumentaria');
           setShowForm(false);
         }}
         onLogout={() => {
@@ -483,9 +534,23 @@ function App() {
           onFetchMovimientos={fetchMovimientos}
           onVolver={() => setVistaActual('inventario')}
         />
+      ) : vistaActual === 'indumentaria' ? (
+        <IndumentariaView
+          user={user}
+          prendas={indumentaria}
+          proveedores={proveedores}
+          loading={loadingIndumentaria}
+          onCreate={createIndumentaria}
+          onUpdate={updateIndumentaria}
+          onDelete={deleteIndumentaria}
+          onRegistrarIngreso={registrarIngresoIndumentaria}
+          onRegistrarEgreso={registrarEgresoIndumentaria}
+          onFetchMovimientos={fetchMovimientosIndumentaria}
+          onVolver={() => setVistaActual('inventario')}
+        />
       ) : (
         // ✨ NUEVO: Vista del Dashboard
-        <Dashboard 
+        <Dashboard
           user={user}
           apiFetch={apiFetch}
           onVolver={() => setVistaActual('inventario')}
@@ -544,6 +609,13 @@ function App() {
           onCreateUsuario={createUsuario}
           onUpdateUsuario={updateUsuario}
           onDeleteUsuario={deleteUsuario}
+          proveedores={proveedores}
+          loadingProveedores={loadingProveedores}
+          errorProveedores={errorProveedores}
+          successProveedores={successProveedores}
+          onCreateProveedor={createProveedor}
+          onUpdateProveedor={updateProveedor}
+          onDeleteProveedor={deleteProveedor}
           onClose={() => setShowAdmin(false)}
         />
       )}

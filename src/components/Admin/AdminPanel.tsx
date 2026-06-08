@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { ProductosManager } from './ProductosManager';
 import { UsuariosManager } from './UsuariosManager';
-import { Producto, TipoQueso, CreateProductoData } from '../../types';
+import { ProveedoresManager } from './ProveedoresManager';
+import { Producto, TipoQueso, CreateProductoData, Proveedor } from '../../types';
 import { Usuario } from '../../hooks/useUsuarios';
 
 interface AdminPanelProps {
@@ -24,7 +25,16 @@ interface AdminPanelProps {
   onCreateUsuario: (data: { username: string; password: string; rol: 'admin' | 'usuario' }) => Promise<{ success: boolean }>;
   onUpdateUsuario: (id: number, data: Partial<Usuario>) => Promise<{ success: boolean }>;
   onDeleteUsuario: (id: number) => Promise<{ success: boolean }>;
-  
+
+  // Proveedores
+  proveedores: Proveedor[];
+  loadingProveedores: boolean;
+  errorProveedores: string;
+  successProveedores: string;
+  onCreateProveedor: (data: Partial<Proveedor>) => Promise<{ success: boolean }>;
+  onUpdateProveedor: (id: number, data: Partial<Proveedor>) => Promise<{ success: boolean }>;
+  onDeleteProveedor: (id: number) => Promise<{ success: boolean }>;
+
   onClose: () => void;
 }
 
@@ -47,10 +57,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onCreateUsuario,
   onUpdateUsuario,
   onDeleteUsuario,
-  
+
+  // Proveedores
+  proveedores,
+  loadingProveedores,
+  errorProveedores,
+  successProveedores,
+  onCreateProveedor,
+  onUpdateProveedor,
+  onDeleteProveedor,
+
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'productos' | 'usuarios'>('productos');
+  const [activeTab, setActiveTab] = useState<'productos' | 'usuarios' | 'proveedores'>('productos');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -86,6 +105,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           >
             👥 Usuarios
           </button>
+          <button
+            className={`filter-btn ${activeTab === 'proveedores' ? 'active' : ''}`}
+            onClick={() => setActiveTab('proveedores')}
+            style={{ flex: 1 }}
+          >
+            🚚 Proveedores
+          </button>
         </div>
 
         {/* Contenido */}
@@ -100,7 +126,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             onUpdate={onUpdateProducto}
             onDelete={onDeleteProducto}
           />
-        ) : (
+        ) : activeTab === 'usuarios' ? (
           <UsuariosManager
             usuarios={usuarios}
             loading={loadingUsuarios}
@@ -109,6 +135,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             onCreate={onCreateUsuario}
             onUpdate={onUpdateUsuario}
             onDelete={onDeleteUsuario}
+          />
+        ) : (
+          <ProveedoresManager
+            proveedores={proveedores}
+            loading={loadingProveedores}
+            error={errorProveedores}
+            success={successProveedores}
+            onCreate={onCreateProveedor}
+            onUpdate={onUpdateProveedor}
+            onDelete={onDeleteProveedor}
           />
         )}
       </div>

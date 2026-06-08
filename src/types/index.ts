@@ -86,3 +86,49 @@ export interface MovimientoElemento {
   creadoPor?: User | null;
   createdAt: string;
 }
+
+export interface Proveedor {
+  id: number;
+  nombre: string;
+  contacto: string | null;
+  telefono: string | null;
+  email: string | null;
+  direccion: string | null;
+  observaciones: string | null;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Indumentaria {
+  id: number;
+  nombre: string;
+  categoria: string | null;
+  talle: string | null;
+  color: string | null;
+  genero: string | null;
+  ubicacion: string | null;
+  cantidadDisponible: number;
+  cantidadTotalIngresada: number;
+  stockMinimo: number;
+  proveedor: Proveedor | null;
+  observaciones: string | null;
+  activo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MovimientoIndumentaria {
+  id: number;
+  tipo: 'INGRESO' | 'EGRESO' | 'AJUSTE';
+  cantidad: number;
+  stockAnterior: number;
+  stockNuevo: number;
+  destino: string | null;
+  proveedor?: Proveedor | null;
+  documentoReferencia: string | null;
+  observaciones: string | null;
+  fechaMovimiento: string;
+  usuario?: UsuarioMini | null;
+  createdAt: string;
+}
