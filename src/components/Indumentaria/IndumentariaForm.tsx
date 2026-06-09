@@ -66,9 +66,9 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
   const [observaciones, setObservaciones] = useState(initial?.observaciones || '');
 
   const canSubmit = useMemo(() => {
-    if (mode === 'create') return nombre.trim().length > 0 && stockInicial >= 0;
+    if (mode === 'create') return nombre.trim().length > 0 && stockInicial >= 0 && proveedorId != null;
     return true;
-  }, [mode, nombre, stockInicial]);
+  }, [mode, nombre, stockInicial, proveedorId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,8 +194,9 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
             className="form-select"
             value={proveedorId ?? ''}
             onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : null)}
+            required={mode === 'create'}
           >
-            <option value="">Sin proveedor</option>
+            <option value="">Seleccionar proveedor...</option>
             {proveedores.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nombre}

@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { apiService } from '../../services/api';
 import { User } from '../../types';
+import { IndumentariaMetrics } from './IndumentariaMetrics';
 import './Dashboard.css';
 
 type Periodo = 'hoy' | 'semana' | 'mes' | 'personalizado';
@@ -699,6 +700,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {exporting === 'pdf' ? 'Exportando PDF...' : 'Exportar a PDF'}
         </button>
       </div>
+
+      <IndumentariaMetrics apiFetch={apiFetch} />
     </div>
   );
 };

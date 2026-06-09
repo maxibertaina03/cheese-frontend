@@ -55,12 +55,15 @@ export const MovimientoModal: React.FC<Props> = ({
   const canSubmit = useMemo(() => {
     if (!prenda) return false;
     if (cantidad <= 0) return false;
+    if (tipo === 'ingreso') {
+      if (proveedorId == null) return false;
+    }
     if (tipo === 'egreso') {
       if (cantidad > prenda.cantidadDisponible) return false;
       if (!destino.trim()) return false;
     }
     return true;
-  }, [cantidad, prenda, tipo, destino]);
+  }, [cantidad, prenda, tipo, destino, proveedorId]);
 
   if (!isOpen || !prenda) return null;
 
@@ -120,13 +123,14 @@ export const MovimientoModal: React.FC<Props> = ({
             {tipo === 'ingreso' && (
               <>
                 <div className="form-group">
-                  <label className="form-label">Proveedor (opcional)</label>
+                  <label className="form-label">Proveedor *</label>
                   <select
                     className="form-select"
                     value={proveedorId ?? ''}
                     onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : null)}
+                    required
                   >
-                    <option value="">Sin proveedor</option>
+                    <option value="">Seleccionar proveedor...</option>
                     {proveedores.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nombre}

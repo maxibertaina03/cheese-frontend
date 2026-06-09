@@ -162,6 +162,19 @@ export const apiService = {
     headers: {},
   }),
 
+  getIndumentariaDashboard: (
+    apiFetch: any,
+    params?: { fechaInicio?: string; fechaFin?: string }
+  ) => apiFetch(`${API_URL}/api/reportes/indumentaria/dashboard${buildQueryString(params || {})}`),
+
+  downloadIndumentariaReporte: (
+    apiFetch: any,
+    formato: 'excel' | 'pdf',
+    params?: { fechaInicio?: string; fechaFin?: string }
+  ) => apiFetch(`${API_URL}/api/reportes/indumentaria/export/${formato}${buildQueryString(params || {})}`, {
+    headers: {},
+  }),
+
   downloadInventarioPdf: (
     apiFetch: any,
     params?: {
