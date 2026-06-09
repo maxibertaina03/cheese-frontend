@@ -86,6 +86,19 @@ export const IndumentariaView: React.FC<Props> = ({
     return { totalDisponible, totalPrendas, bajos };
   }, [prendasValidas]);
 
+  const opciones = useMemo(() => {
+    const distinct = (valores: (string | null | undefined)[]) =>
+      Array.from(
+        new Set(valores.map((v) => (v ?? '').trim()).filter((v) => v.length > 0))
+      );
+    return {
+      nombres: distinct(prendasValidas.map((p) => p.nombre)),
+      talles: distinct(prendasValidas.map((p) => p.talle)),
+      colores: distinct(prendasValidas.map((p) => p.color)),
+      categorias: distinct(prendasValidas.map((p) => p.categoria)),
+    };
+  }, [prendasValidas]);
+
   const handleOpenMovimientos = async (prenda: Indumentaria) => {
     setPrendaMovimiento(prenda);
     setShowMovimientosModal(true);
@@ -222,6 +235,7 @@ export const IndumentariaView: React.FC<Props> = ({
               <IndumentariaForm
                 mode="create"
                 proveedores={proveedores}
+                opciones={opciones}
                 loading={loading}
                 onSubmit={handleCreate}
                 onClose={() => setShowForm(false)}
@@ -245,6 +259,7 @@ export const IndumentariaView: React.FC<Props> = ({
                 mode="edit"
                 initial={editando}
                 proveedores={proveedores}
+                opciones={opciones}
                 loading={loading}
                 onSubmit={handleUpdate}
                 onClose={() => setEditando(null)}

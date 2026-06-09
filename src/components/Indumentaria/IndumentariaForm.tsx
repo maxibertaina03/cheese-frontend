@@ -1,6 +1,7 @@
 // src/components/Indumentaria/IndumentariaForm.tsx
 import React, { useMemo, useState } from 'react';
 import { Indumentaria, Proveedor } from '../../types';
+import { Opcion, SelectConAgregar } from './SelectConAgregar';
 
 const CATEGORIAS = [
   { value: 'blanca', label: 'Ropa blanca (producción)' },
@@ -14,6 +15,34 @@ const GENEROS = [
   { value: 'hombre', label: 'Hombre' },
   { value: 'mujer', label: 'Mujer' },
 ];
+
+// Opciones base sugeridas; se combinan con las ya cargadas en la base.
+const TALLES_DEFAULT = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const COLORES_DEFAULT = ['Blanco', 'Negro', 'Azul', 'Gris', 'Celeste', 'Verde', 'Rojo', 'Beige'];
+
+export type OpcionesIndumentaria = {
+  nombres: string[];
+  talles: string[];
+  colores: string[];
+  categorias: string[];
+};
+
+// Une opciones por defecto + valores existentes, sin duplicar (case-insensitive).
+const mergeStringOptions = (defaults: string[], existentes: string[]): Opcion[] => {
+  const vistos = new Map<string, string>();
+  [...defaults, ...existentes]
+    .map((v) => (v ?? '').trim())
+    .filter((v) => v.length > 0)
+    .forEach((v) => {
+      const clave = v.toLowerCase();
+      if (!vistos.has(clave)) {
+        vistos.set(clave, v);
+      }
+    });
+  return Array.from(vistos.values())
+    .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+    .map((v) => ({ value: v, label: v }));
+};
 
 type CreateData = {
   nombre: string;
@@ -32,6 +61,7 @@ type UpdateData = Omit<CreateData, 'nombre' | 'stockInicial'>;
 
 type CommonProps = {
   proveedores: Proveedor[];
+  opciones?: OpcionesIndumentaria;
   loading?: boolean;
   onClose: () => void;
 };
@@ -51,8 +81,29 @@ type EditProps = CommonProps & {
 type Props = CreateProps | EditProps;
 
 export const IndumentariaForm: React.FC<Props> = (props) => {
-  const { mode, proveedores, loading, onClose } = props;
+  const { mode, proveedores, opciones, loading, onClose } = props;
   const initial = mode === 'edit' ? props.initial : undefined;
+
+  const nombreOptions = useMemo(
+    () => mergeStringOptions([], opciones?.nombres ?? []),
+    [opciones]
+  );
+  const talleOptions = useMemo(
+    () => mergeStringOptions(TALLES_DEFAULT, opciones?.talles ?? []),
+    [opciones]
+  );
+  const colorOptions = useMemo(
+    () => mergeStringOptions(COLORES_DEFAULT, opciones?.colores ?? []),
+    [opciones]
+  );
+  const categoriaOptions = useMemo<Opcion[]>(() => {
+    const predefinidas = CATEGORIAS.map((c) => c.value.toLowerCase());
+    const extra = (opciones?.categorias ?? [])
+      .map((v) => (v ?? '').trim())
+      .filter((v) => v.length > 0 && !predefinidas.includes(v.toLowerCase()))
+      .map((v) => ({ value: v, label: v }));
+    return [...CATEGORIAS, ...extra];
+  }, [opciones]);
 
   const [nombre, setNombre] = useState(initial?.nombre || '');
   const [stockInicial, setStockInicial] = useState<number>(0);
@@ -97,14 +148,20 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
       <div className="form-grid">
         <div className="form-group">
           <label className="form-label">Nombre de la prenda</label>
-          <input
-            className="form-input"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej: Camisa, Pantalón, Cofia"
-            disabled={mode === 'edit'}
-            required={mode === 'create'}
-          />
+          {mode === 'edit' ? (
+            <input className="form-input" value={nombre} disabled />
+          ) : (
+            <SelectConAgregar
+              value={nombre}
+              onChange={setNombre}
+              options={nombreOptions}
+              placeholder="Seleccionar prenda..."
+              addLabel="➕ Agregar nueva prenda..."
+              inputPlaceholder="Ej: Camisa, Pantalón, Cofia"
+              maxLength={200}
+              required
+            />
+          )}
           {mode === 'edit' && <div className="form-hint">El nombre no se puede modificar</div>}
         </div>
 
@@ -136,33 +193,40 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
 
         <div className="form-group">
           <label className="form-label">Categoría</label>
-          <select className="form-select" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-            <option value="">Sin categoría</option>
-            {CATEGORIAS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+          <SelectConAgregar
+            value={categoria}
+            onChange={setCategoria}
+            options={categoriaOptions}
+            placeholder="Sin categoría"
+            addLabel="➕ Agregar nueva categoría..."
+            inputPlaceholder="Ej: Calzado, Abrigo"
+            maxLength={50}
+          />
         </div>
 
         <div className="form-group">
           <label className="form-label">Talle</label>
-          <input
-            className="form-input"
+          <SelectConAgregar
             value={talle}
-            onChange={(e) => setTalle(e.target.value)}
-            placeholder="Ej: M, XL, 42"
+            onChange={setTalle}
+            options={talleOptions}
+            placeholder="Seleccionar talle..."
+            addLabel="➕ Agregar nuevo talle..."
+            inputPlaceholder="Ej: 42, Único"
+            maxLength={20}
           />
         </div>
 
         <div className="form-group">
           <label className="form-label">Color</label>
-          <input
-            className="form-input"
+          <SelectConAgregar
             value={color}
-            onChange={(e) => setColor(e.target.value)}
-            placeholder="Ej: Blanco, Azul"
+            onChange={setColor}
+            options={colorOptions}
+            placeholder="Seleccionar color..."
+            addLabel="➕ Agregar nuevo color..."
+            inputPlaceholder="Ej: Bordó, Naranja"
+            maxLength={50}
           />
         </div>
 
