@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Indumentaria, Proveedor } from '../../types';
 import { Opcion, SelectConAgregar } from './SelectConAgregar';
+import { ProveedorSelect } from './ProveedorSelect';
 
 const CATEGORIAS = [
   { value: 'blanca', label: 'Ropa blanca (producción)' },
@@ -64,6 +65,7 @@ type CommonProps = {
   opciones?: OpcionesIndumentaria;
   loading?: boolean;
   onClose: () => void;
+  onCreateProveedor?: (nombre: string) => Promise<Proveedor | null>;
 };
 
 type CreateProps = CommonProps & {
@@ -81,7 +83,7 @@ type EditProps = CommonProps & {
 type Props = CreateProps | EditProps;
 
 export const IndumentariaForm: React.FC<Props> = (props) => {
-  const { mode, proveedores, opciones, loading, onClose } = props;
+  const { mode, proveedores, opciones, loading, onClose, onCreateProveedor } = props;
   const initial = mode === 'edit' ? props.initial : undefined;
 
   const nombreOptions = useMemo(
@@ -254,19 +256,13 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
 
         <div className="form-group">
           <label className="form-label">Proveedor</label>
-          <select
-            className="form-select"
-            value={proveedorId ?? ''}
-            onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : null)}
+          <ProveedorSelect
+            proveedores={proveedores}
+            value={proveedorId}
+            onChange={setProveedorId}
+            onCreateProveedor={onCreateProveedor}
             required={mode === 'create'}
-          >
-            <option value="">Seleccionar proveedor...</option>
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 

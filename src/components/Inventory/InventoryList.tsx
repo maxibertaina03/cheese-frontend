@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TipoQueso, Unidad, User } from '../../types';
 import { UnidadCard } from './UnidadCard';
+import { canAccess } from '../../utils/permissions';
 
 interface InventoryListProps {
   unidades: Unidad[];
@@ -86,7 +87,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h2 style={{ margin: 0 }}>Inventario Actual</h2>
-          {user?.rol !== 'admin' && <span className="badge-readonly">Solo lectura</span>}
+          {!canAccess(user, 'quesos') && <span className="badge-readonly">Solo lectura</span>}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>

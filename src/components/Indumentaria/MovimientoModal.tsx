@@ -1,6 +1,7 @@
 // src/components/Indumentaria/MovimientoModal.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Indumentaria, Proveedor } from '../../types';
+import { ProveedorSelect } from './ProveedorSelect';
 
 type IngresoData = {
   cantidad: number;
@@ -24,6 +25,7 @@ interface Props {
   onClose: () => void;
   onSubmitIngreso: (data: IngresoData) => void;
   onSubmitEgreso: (data: EgresoData) => void;
+  onCreateProveedor?: (nombre: string) => Promise<Proveedor | null>;
 }
 
 export const MovimientoModal: React.FC<Props> = ({
@@ -35,6 +37,7 @@ export const MovimientoModal: React.FC<Props> = ({
   onClose,
   onSubmitIngreso,
   onSubmitEgreso,
+  onCreateProveedor,
 }) => {
   const [cantidad, setCantidad] = useState(0);
   const [proveedorId, setProveedorId] = useState<number | null>(null);
@@ -124,19 +127,13 @@ export const MovimientoModal: React.FC<Props> = ({
               <>
                 <div className="form-group">
                   <label className="form-label">Proveedor *</label>
-                  <select
-                    className="form-select"
-                    value={proveedorId ?? ''}
-                    onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : null)}
+                  <ProveedorSelect
+                    proveedores={proveedores}
+                    value={proveedorId}
+                    onChange={setProveedorId}
+                    onCreateProveedor={onCreateProveedor}
                     required
-                  >
-                    <option value="">Seleccionar proveedor...</option>
-                    {proveedores.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">N° remito / factura (opcional)</label>

@@ -131,7 +131,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
             <p className="page-subtitle">Controla ingresos, egresos y disponibilidad</p>
           </div>
           <div className="elementos-actions">
-            {user?.rol !== 'admin' && <span className="badge-readonly">🔒 Solo lectura</span>}
+            {!isAdmin && <span className="badge-readonly">🔒 Solo lectura</span>}
             {onVolver && (
               <button className="btn-back" onClick={onVolver}>
                 Volver a Quesos

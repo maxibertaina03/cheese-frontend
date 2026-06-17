@@ -24,6 +24,7 @@ interface Props {
     data: { cantidad: number; destino: string; observaciones?: string | null }
   ) => Promise<{ success: boolean }>;
   onFetchMovimientos: (id: number) => Promise<MovimientoIndumentaria[]>;
+  onCreateProveedor?: (nombre: string) => Promise<Proveedor | null>;
   onVolver?: () => void;
 }
 
@@ -46,6 +47,7 @@ export const IndumentariaView: React.FC<Props> = ({
   onRegistrarIngreso,
   onRegistrarEgreso,
   onFetchMovimientos,
+  onCreateProveedor,
   onVolver,
 }) => {
   const { canEdit: isAdmin } = usePermissions(user, 'indumentaria');
@@ -139,7 +141,7 @@ export const IndumentariaView: React.FC<Props> = ({
             <p className="page-subtitle">Stock de ropa de trabajo, entregas y proveedores</p>
           </div>
           <div className="elementos-actions">
-            {user?.rol !== 'admin' && <span className="badge-readonly">🔒 Solo lectura</span>}
+            {!isAdmin && <span className="badge-readonly">🔒 Solo lectura</span>}
             {onVolver && (
               <button className="btn-back" onClick={onVolver}>
                 Volver a Quesos
@@ -239,6 +241,7 @@ export const IndumentariaView: React.FC<Props> = ({
                 loading={loading}
                 onSubmit={handleCreate}
                 onClose={() => setShowForm(false)}
+                onCreateProveedor={onCreateProveedor}
               />
             </div>
           </div>
@@ -263,6 +266,7 @@ export const IndumentariaView: React.FC<Props> = ({
                 loading={loading}
                 onSubmit={handleUpdate}
                 onClose={() => setEditando(null)}
+                onCreateProveedor={onCreateProveedor}
               />
             </div>
           </div>
@@ -286,6 +290,7 @@ export const IndumentariaView: React.FC<Props> = ({
           const result = await onRegistrarEgreso(prendaMovimiento.id, data);
           if (result.success) setShowMovimientoModal(false);
         }}
+        onCreateProveedor={onCreateProveedor}
       />
 
       <MovimientosModal

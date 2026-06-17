@@ -27,10 +27,11 @@ export const useProveedores = (apiFetch: any) => {
     try {
       const response = await apiService.createProveedor(apiFetch, data);
       if (response.ok) {
+        const proveedor = (await response.json()) as Proveedor;
         setSuccess('Proveedor creado correctamente');
         await fetchProveedores();
         setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
+        return { success: true, proveedor };
       }
       const errorData = await response.json();
       setError(errorData.error || 'Error al crear proveedor');

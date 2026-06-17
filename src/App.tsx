@@ -571,6 +571,10 @@ function App() {
           onRegistrarIngreso={registrarIngresoIndumentaria}
           onRegistrarEgreso={registrarEgresoIndumentaria}
           onFetchMovimientos={fetchMovimientosIndumentaria}
+          onCreateProveedor={async (nombre) => {
+            const result = await createProveedor({ nombre });
+            return result.success && result.proveedor ? result.proveedor : null;
+          }}
           onVolver={() => setVistaActual('inventario')}
         />
       ) : (
