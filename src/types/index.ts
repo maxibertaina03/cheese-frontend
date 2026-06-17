@@ -41,9 +41,15 @@ export interface Unidad {
   motivo: Motivo;
 }
 
+// Secciones del sistema sobre las que se pueden otorgar permisos a un usuario.
+export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial';
+
 export interface User {
   token: string;
   rol: 'admin' | 'usuario';
+  // Secciones a las que el usuario tiene acceso (solo aplica a rol 'usuario').
+  // Los admin tienen acceso a todo.
+  permisos?: Modulo[];
 }
 
 export type FiltroHistorial = 'todos' | 'activos' | 'agotados';

@@ -22,7 +22,7 @@ export const ElementoCard: React.FC<ElementoCardProps> = ({
   onDelete,
   onVerMovimientos,
 }) => {
-  const { isAdmin } = usePermissions(user);
+  const { canEdit: isAdmin } = usePermissions(user, 'elementos');
   const porcentaje = elemento.cantidadTotal > 0
     ? Math.round((elemento.cantidadDisponible / elemento.cantidadTotal) * 100)
     : 0;

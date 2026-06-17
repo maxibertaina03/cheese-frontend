@@ -4,6 +4,7 @@ import './App.css';
 import { Unidad, TipoQueso } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
+import { canAccess } from './utils/permissions';
 import { useInventory } from './hooks/useInventory';
 import { useHistorial } from './hooks/useHistorial';
 import { useAdmin } from './hooks/useAdmin';
@@ -188,6 +189,30 @@ function App() {
     }
   }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores]);
   const historialCargado = useRef(false);
+
+  // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
+  // Asi, por ejemplo, un usuario sin permiso de quesos no aterriza en el inventario vacio.
+  const landingSet = useRef(false);
+  useEffect(() => {
+    if (!user) {
+      landingSet.current = false;
+      return;
+    }
+    if (landingSet.current) return;
+
+    const orden: { modulo: 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial'; vista: typeof vistaActual }[] = [
+      { modulo: 'quesos', vista: 'inventario' },
+      { modulo: 'dashboard', vista: 'dashboard' },
+      { modulo: 'elementos', vista: 'elementos' },
+      { modulo: 'indumentaria', vista: 'indumentaria' },
+      { modulo: 'historial', vista: 'historial' },
+    ];
+    const primera = orden.find((o) => canAccess(user, o.modulo));
+    if (primera) {
+      setVistaActual(primera.vista);
+    }
+    landingSet.current = true;
+  }, [user]);
 
   
   useEffect(() => {

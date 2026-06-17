@@ -1,14 +1,23 @@
 // src/components/Admin/UsuariosManager.tsx
 import React, { useState } from 'react';
-import { Usuario } from '../../hooks/useUsuarios';
+import { Usuario, Modulo } from '../../hooks/useUsuarios';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+
+// Secciones disponibles para asignar a un usuario (rol 'usuario').
+const MODULOS: { value: Modulo; label: string }[] = [
+  { value: 'quesos', label: 'Quesos' },
+  { value: 'elementos', label: 'Elementos' },
+  { value: 'indumentaria', label: 'Indumentaria' },
+  { value: 'dashboard', label: 'Dashboard' },
+  { value: 'historial', label: 'Historial' },
+];
 
 interface UsuariosManagerProps {
   usuarios: Usuario[];
   loading: boolean;
   error: string;
   success: string;
-  onCreate: (data: { username: string; password: string; rol: 'admin' | 'usuario' }) => Promise<{ success: boolean }>;
+  onCreate: (data: { username: string; password: string; rol: 'admin' | 'usuario'; permisos?: Modulo[] }) => Promise<{ success: boolean }>;
   onUpdate: (id: number, data: Partial<Usuario>) => Promise<{ success: boolean }>;
   onDelete: (id: number) => Promise<{ success: boolean }>;
 }
@@ -31,24 +40,37 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
     username: '',
     password: '',
     rol: 'usuario' as 'admin' | 'usuario',
+    permisos: [] as Modulo[],
   });
+
+  const togglePermiso = (modulo: Modulo) => {
+    setFormData((prev) => ({
+      ...prev,
+      permisos: prev.permisos.includes(modulo)
+        ? prev.permisos.filter((m) => m !== modulo)
+        : [...prev.permisos, modulo],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Los admin acceden a todo, por lo que no se guardan secciones para ellos.
+    const permisos = formData.rol === 'admin' ? [] : formData.permisos;
+
     if (usuarioEditando) {
-      // Update: solo rol (no password por seguridad)
-      const result = await onUpdate(usuarioEditando.id, { rol: formData.rol });
+      // Update: rol y permisos (no password por seguridad)
+      const result = await onUpdate(usuarioEditando.id, { rol: formData.rol, permisos });
       if (result.success) {
         setShowForm(false);
         setUsuarioEditando(null);
       }
     } else {
-      // Create: username, password y rol
-      const result = await onCreate(formData);
+      // Create: username, password, rol y permisos
+      const result = await onCreate({ ...formData, permisos });
       if (result.success) {
         setShowForm(false);
-        setFormData({ username: '', password: '', rol: 'usuario' });
+        setFormData({ username: '', password: '', rol: 'usuario', permisos: [] });
       }
     }
   };
@@ -67,6 +89,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
       username: usuario.username,
       password: '', // No mostramos password
       rol: usuario.rol,
+      permisos: usuario.permisos ?? [],
     });
     setShowForm(true);
   };
@@ -80,7 +103,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
           className="btn-primary"
           onClick={() => {
             setUsuarioEditando(null);
-            setFormData({ username: '', password: '', rol: 'usuario' });
+            setFormData({ username: '', password: '', rol: 'usuario', permisos: [] });
             setShowForm(true);
           }}
         >
@@ -117,6 +140,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
               <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>ID</th>
               <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Usuario</th>
               <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Rol</th>
+              <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Secciones</th>
               <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Creado</th>
               <th style={{ padding: '1rem', textAlign: 'center', fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Acciones</th>
             </tr>
@@ -130,6 +154,15 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
                   <span className={`badge ${usuario.rol === 'admin' ? 'badge-duro' : 'badge-blando'}`}>
                     {usuario.rol.toUpperCase()}
                   </span>
+                </td>
+                <td style={{ padding: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                  {usuario.rol === 'admin'
+                    ? 'Acceso total'
+                    : (usuario.permisos && usuario.permisos.length > 0
+                        ? usuario.permisos
+                            .map((p) => MODULOS.find((m) => m.value === p)?.label ?? p)
+                            .join(', ')
+                        : 'Sin acceso')}
                 </td>
                 <td style={{ padding: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
                   {new Date(usuario.createdAt).toLocaleDateString('es-AR')}
@@ -210,6 +243,38 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
                   <option value="admin">Administrador</option>
                 </select>
               </div>
+
+              {formData.rol === 'admin' ? (
+                <div className="form-group">
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+                    Un administrador tiene acceso total a todas las secciones.
+                  </p>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">Secciones permitidas</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {MODULOS.map((modulo) => (
+                      <label
+                        key={modulo.value}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: '#374151' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.permisos.includes(modulo.value)}
+                          onChange={() => togglePermiso(modulo.value)}
+                        />
+                        {modulo.label}
+                      </label>
+                    ))}
+                  </div>
+                  {formData.permisos.length === 0 && (
+                    <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem' }}>
+                      Si no seleccionás ninguna sección, el usuario no podrá ver nada.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>

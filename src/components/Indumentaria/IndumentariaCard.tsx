@@ -29,7 +29,7 @@ export const IndumentariaCard: React.FC<Props> = ({
   onDelete,
   onVerMovimientos,
 }) => {
-  const { isAdmin } = usePermissions(user);
+  const { canEdit: isAdmin } = usePermissions(user, 'indumentaria');
   const stockBajo = prenda.stockMinimo > 0 && prenda.cantidadDisponible <= prenda.stockMinimo;
 
   return (

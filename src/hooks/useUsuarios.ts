@@ -2,10 +2,13 @@
 import { useState, useCallback } from 'react';
 import { apiService } from '../services/api';
 
+export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial';
+
 export interface Usuario {
   id: number;
   username: string;
   rol: 'admin' | 'usuario';
+  permisos: Modulo[];
   createdAt: string;
 }
 
@@ -29,6 +32,7 @@ export const useUsuarios = (apiFetch: any) => {
     username: string;
     password: string;
     rol: 'admin' | 'usuario';
+    permisos?: Modulo[];
   }) => {
     setLoading(true);
     setError('');

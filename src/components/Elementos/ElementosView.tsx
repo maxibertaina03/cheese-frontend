@@ -37,7 +37,7 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
   onFetchMovimientos,
   onVolver,
 }) => {
-  const { isAdmin } = usePermissions(user);
+  const { canEdit: isAdmin } = usePermissions(user, 'elementos');
   const [filtro, setFiltro] = useState('');
   const [soloActivos, setSoloActivos] = useState(true);
   const [showForm, setShowForm] = useState(false);

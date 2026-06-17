@@ -48,7 +48,7 @@ export const IndumentariaView: React.FC<Props> = ({
   onFetchMovimientos,
   onVolver,
 }) => {
-  const { isAdmin } = usePermissions(user);
+  const { canEdit: isAdmin } = usePermissions(user, 'indumentaria');
   const [filtro, setFiltro] = useState('');
   const [categoria, setCategoria] = useState('todas');
   const [showForm, setShowForm] = useState(false);

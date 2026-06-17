@@ -28,6 +28,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         onLogin({
           token: data.token,
           rol: data.user.rol,
+          permisos: data.user.permisos ?? [],
         });
       } else {
         setError(data.error || 'Credenciales invalidas');

@@ -4,7 +4,7 @@ import { ProductosManager } from './ProductosManager';
 import { UsuariosManager } from './UsuariosManager';
 import { ProveedoresManager } from './ProveedoresManager';
 import { Producto, TipoQueso, CreateProductoData, Proveedor } from '../../types';
-import { Usuario } from '../../hooks/useUsuarios';
+import { Usuario, Modulo } from '../../hooks/useUsuarios';
 
 interface AdminPanelProps {
   // Productos
@@ -22,7 +22,7 @@ interface AdminPanelProps {
   loadingUsuarios: boolean;
   errorUsuarios: string;
   successUsuarios: string;
-  onCreateUsuario: (data: { username: string; password: string; rol: 'admin' | 'usuario' }) => Promise<{ success: boolean }>;
+  onCreateUsuario: (data: { username: string; password: string; rol: 'admin' | 'usuario'; permisos?: Modulo[] }) => Promise<{ success: boolean }>;
   onUpdateUsuario: (id: number, data: Partial<Usuario>) => Promise<{ success: boolean }>;
   onDeleteUsuario: (id: number) => Promise<{ success: boolean }>;
 

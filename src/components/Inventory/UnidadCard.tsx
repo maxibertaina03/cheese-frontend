@@ -31,7 +31,7 @@ export const UnidadCard: React.FC<UnidadCardProps> = ({
   isHistorial,
   vistaMode = 'lista',
 }) => {
-  const { canDelete, canEdit, canCut } = usePermissions(user);
+  const { canDelete, canEdit, canCut } = usePermissions(user, 'quesos');
 
   if (!unidad.producto) return null;
 

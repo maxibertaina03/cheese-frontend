@@ -42,6 +42,7 @@ export const useAuth = () => {
         setUser({
           token: parsedUser.token,
           rol: data.user.rol,
+          permisos: data.user.permisos ?? [],
         });
       } catch {
         setUser(null);
@@ -59,7 +60,7 @@ export const useAuth = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setUser({ token: data.token, rol: data.user.rol });
+        setUser({ token: data.token, rol: data.user.rol, permisos: data.user.permisos ?? [] });
         return { success: true, error: '' };
       }
 
