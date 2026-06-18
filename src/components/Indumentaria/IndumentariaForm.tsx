@@ -108,8 +108,13 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
   }, [opciones]);
 
   const [nombre, setNombre] = useState(initial?.nombre || '');
-  const [stockInicial, setStockInicial] = useState<number>(0);
-  const [stockMinimo, setStockMinimo] = useState<number>(initial?.stockMinimo ?? 0);
+  const [stockInicial, setStockInicial] = useState<string>('');
+  const [stockMinimo, setStockMinimo] = useState<string>(
+    initial?.stockMinimo ? String(initial.stockMinimo) : ''
+  );
+
+  const stockInicialNum = Number(stockInicial) || 0;
+  const stockMinimoNum = Number(stockMinimo) || 0;
   const [categoria, setCategoria] = useState(initial?.categoria || '');
   const [talle, setTalle] = useState(initial?.talle || '');
   const [color, setColor] = useState(initial?.color || '');
@@ -119,16 +124,16 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
   const [observaciones, setObservaciones] = useState(initial?.observaciones || '');
 
   const canSubmit = useMemo(() => {
-    if (mode === 'create') return nombre.trim().length > 0 && stockInicial >= 0 && proveedorId != null;
+    if (mode === 'create') return nombre.trim().length > 0 && stockInicialNum >= 0 && proveedorId != null;
     return true;
-  }, [mode, nombre, stockInicial, proveedorId]);
+  }, [mode, nombre, stockInicialNum, proveedorId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
 
     const meta = {
-      stockMinimo: Number(stockMinimo) || 0,
+      stockMinimo: stockMinimoNum,
       categoria: categoria || null,
       talle: talle.trim() ? talle.trim() : null,
       color: color.trim() ? color.trim() : null,
@@ -139,7 +144,7 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
     };
 
     if (mode === 'create') {
-      props.onSubmit({ nombre: nombre.trim(), stockInicial: Number(stockInicial) || 0, ...meta });
+      props.onSubmit({ nombre: nombre.trim(), stockInicial: stockInicialNum, ...meta });
     } else {
       props.onSubmit(meta);
     }
@@ -174,7 +179,7 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
               type="number"
               className="form-input"
               value={stockInicial}
-              onChange={(e) => setStockInicial(Number(e.target.value))}
+              onChange={(e) => setStockInicial(e.target.value)}
               min={0}
               placeholder="Ej: 10"
             />
@@ -187,7 +192,7 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
             type="number"
             className="form-input"
             value={stockMinimo}
-            onChange={(e) => setStockMinimo(Number(e.target.value))}
+            onChange={(e) => setStockMinimo(e.target.value)}
             min={0}
             placeholder="Ej: 3"
           />

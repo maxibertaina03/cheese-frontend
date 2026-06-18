@@ -6,6 +6,7 @@ import { ElementoCard } from './ElementoCard';
 interface ElementoListProps {
   elementos: Elemento[];
   user: User | null;
+  vistaMode?: 'lista' | 'grid';
   onIngreso: (elemento: Elemento) => void;
   onEgreso: (elemento: Elemento) => void;
   onEdit: (elemento: Elemento) => void;
@@ -16,6 +17,7 @@ interface ElementoListProps {
 export const ElementoList: React.FC<ElementoListProps> = ({
   elementos,
   user,
+  vistaMode = 'lista',
   onIngreso,
   onEgreso,
   onEdit,
@@ -32,7 +34,7 @@ export const ElementoList: React.FC<ElementoListProps> = ({
   }
 
   return (
-    <div className="inventory-container lista">
+    <div className={`inventory-container ${vistaMode}`}>
       {elementos.map((elemento) => (
         <ElementoCard
           key={elemento.id}

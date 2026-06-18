@@ -6,6 +6,7 @@ import { ElementoList } from './ElementoList';
 import { MovimientoModal } from './MovimientoModal';
 import { MovimientosModal } from './MovimientosModal';
 import { usePermissions } from '../../utils/permissions';
+import { exportElementosPdfLocal } from '../../utils/pdfExport';
 
 interface ElementosViewProps {
   user: User | null;
@@ -40,6 +41,8 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
   const { canEdit: isAdmin } = usePermissions(user, 'elementos');
   const [filtro, setFiltro] = useState('');
   const [soloActivos, setSoloActivos] = useState(true);
+  const [vistaMode, setVistaMode] = useState<'lista' | 'grid'>('lista');
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [elementoEditando, setElementoEditando] = useState<Elemento | null>(null);
   const [movimientoTipo, setMovimientoTipo] = useState<'ingreso' | 'egreso'>('ingreso');
@@ -120,6 +123,16 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
     if (!elementoEditando) return;
     const result = await onUpdateElemento(elementoEditando.id, data);
     if (result.success) setElementoEditando(null);
+  };
+
+  const handleExportPdf = () => {
+    setExportingPdf(true);
+    try {
+      const filename = `elementos_${new Date().toISOString().slice(0, 10)}.pdf`;
+      exportElementosPdfLocal(elementosFiltrados, filename);
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   return (
@@ -203,9 +216,53 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
           </div>
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+          }}
+        >
+          <button className="btn-export" onClick={handleExportPdf} disabled={exportingPdf || elementosFiltrados.length === 0}>
+            {exportingPdf ? 'Exportando PDF...' : 'Exportar PDF'}
+          </button>
+
+          <div className="view-toggle">
+            <button
+              className={`view-btn ${vistaMode === 'lista' ? 'active' : ''}`}
+              onClick={() => setVistaMode('lista')}
+              title="Vista lista"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+              Lista
+            </button>
+            <button
+              className={`view-btn ${vistaMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setVistaMode('grid')}
+              title="Vista grid"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Grid
+            </button>
+          </div>
+        </div>
+
         <ElementoList
           elementos={elementosFiltrados}
           user={user}
+          vistaMode={vistaMode}
           onIngreso={(elemento) => handleOpenMovimiento('ingreso', elemento)}
           onEgreso={(elemento) => handleOpenMovimiento('egreso', elemento)}
           onEdit={(elemento) => setElementoEditando(elemento)}

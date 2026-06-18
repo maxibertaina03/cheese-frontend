@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Unidad } from '../types';
+import { Elemento, Indumentaria, Unidad } from '../types';
 
 const toNumber = (value: unknown) => {
   if (typeof value === 'number') {
@@ -134,6 +134,88 @@ export const exportInventarioPdfLocal = (unidades: Unidad[], filename: string) =
       6: { halign: 'right', cellWidth: 24 },
       7: { cellWidth: 42 },
       8: { cellWidth: 27 },
+    },
+  });
+
+  savePdf(doc, filename);
+};
+
+export const exportElementosPdfLocal = (elementos: Elemento[], filename: string) => {
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const totalDisponible = elementos.reduce((sum, e) => sum + toNumber(e.cantidadDisponible), 0);
+  const totalHistorico = elementos.reduce((sum, e) => sum + toNumber(e.cantidadTotal), 0);
+  const bajos = elementos.filter((e) => toNumber(e.cantidadDisponible) <= 5).length;
+
+  drawHeader(doc, 'Inventario de elementos', 'Las Tres Estrellas');
+  drawSummary(doc, [
+    { label: 'Elementos', value: String(elementos.length) },
+    { label: 'Disponible total', value: String(totalDisponible) },
+    { label: 'Total historico', value: String(totalHistorico) },
+    { label: 'Bajo stock', value: String(bajos) },
+  ]);
+
+  autoTable(doc, {
+    ...tableTheme,
+    startY: 58,
+    head: [['ID', 'Nombre', 'Disponible', 'Total', 'Estado', 'Descripcion']],
+    body: elementos.map((elemento) => [
+      `#${elemento.id}`,
+      elemento.nombre ?? '-',
+      String(toNumber(elemento.cantidadDisponible)),
+      String(toNumber(elemento.cantidadTotal)),
+      elemento.activo ? 'Activo' : 'Inactivo',
+      elemento.descripcion ?? '-',
+    ]),
+    columnStyles: {
+      0: { cellWidth: 16 },
+      1: { cellWidth: 70 },
+      2: { halign: 'right', cellWidth: 28 },
+      3: { halign: 'right', cellWidth: 28 },
+      4: { cellWidth: 28 },
+      5: { cellWidth: 107 },
+    },
+  });
+
+  savePdf(doc, filename);
+};
+
+export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: string) => {
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const totalDisponible = prendas.reduce((sum, p) => sum + toNumber(p.cantidadDisponible), 0);
+  const bajos = prendas.filter(
+    (p) => toNumber(p.stockMinimo) > 0 && toNumber(p.cantidadDisponible) <= toNumber(p.stockMinimo)
+  ).length;
+
+  drawHeader(doc, 'Inventario de indumentaria', 'Ropa de trabajo y entregas');
+  drawSummary(doc, [
+    { label: 'Prendas', value: String(prendas.length) },
+    { label: 'Disponible total', value: String(totalDisponible) },
+    { label: 'Bajo stock', value: String(bajos) },
+  ]);
+
+  autoTable(doc, {
+    ...tableTheme,
+    startY: 58,
+    head: [['ID', 'Nombre', 'Categoria', 'Talle', 'Color', 'Disponible', 'Stock min', 'Proveedor']],
+    body: prendas.map((prenda) => [
+      `#${prenda.id}`,
+      prenda.nombre ?? '-',
+      prenda.categoria ?? '-',
+      prenda.talle ?? '-',
+      prenda.color ?? '-',
+      String(toNumber(prenda.cantidadDisponible)),
+      String(toNumber(prenda.stockMinimo)),
+      prenda.proveedor?.nombre ?? '-',
+    ]),
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 28 },
+      5: { halign: 'right', cellWidth: 26 },
+      6: { halign: 'right', cellWidth: 24 },
+      7: { cellWidth: 79 },
     },
   });
 

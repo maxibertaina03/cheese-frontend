@@ -21,13 +21,15 @@ export const MovimientoModal: React.FC<MovimientoModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [cantidad, setCantidad] = useState(0);
+  const [cantidad, setCantidad] = useState('');
   const [motivoId, setMotivoId] = useState<number | null>(null);
   const [observaciones, setObservaciones] = useState('');
 
+  const cantidadNum = Number(cantidad);
+
   useEffect(() => {
     if (isOpen) {
-      setCantidad(0);
+      setCantidad('');
       setMotivoId(null);
       setObservaciones('');
     }
@@ -35,10 +37,10 @@ export const MovimientoModal: React.FC<MovimientoModalProps> = ({
 
   const canSubmit = useMemo(() => {
     if (!elemento) return false;
-    if (cantidad <= 0) return false;
-    if (tipo === 'egreso' && cantidad > elemento.cantidadDisponible) return false;
+    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) return false;
+    if (tipo === 'egreso' && cantidadNum > elemento.cantidadDisponible) return false;
     return true;
-  }, [cantidad, elemento, tipo]);
+  }, [cantidadNum, elemento, tipo]);
 
   if (!isOpen || !elemento) return null;
 
@@ -64,7 +66,7 @@ export const MovimientoModal: React.FC<MovimientoModalProps> = ({
             e.preventDefault();
             if (!canSubmit) return;
             onSubmit({
-              cantidad,
+              cantidad: cantidadNum,
               motivoId: tipo === 'egreso' ? motivoId : null,
               observaciones: observaciones.trim() ? observaciones.trim() : null,
             });
@@ -77,7 +79,7 @@ export const MovimientoModal: React.FC<MovimientoModalProps> = ({
                 type="number"
                 className="form-input"
                 value={cantidad}
-                onChange={(e) => setCantidad(Number(e.target.value))}
+                onChange={(e) => setCantidad(e.target.value)}
                 min={1}
                 max={tipo === 'egreso' ? elemento.cantidadDisponible : undefined}
                 placeholder="Ej: 2"

@@ -39,15 +39,17 @@ export const MovimientoModal: React.FC<Props> = ({
   onSubmitEgreso,
   onCreateProveedor,
 }) => {
-  const [cantidad, setCantidad] = useState(0);
+  const [cantidad, setCantidad] = useState('');
   const [proveedorId, setProveedorId] = useState<number | null>(null);
   const [documentoReferencia, setDocumentoReferencia] = useState('');
   const [destino, setDestino] = useState('');
   const [observaciones, setObservaciones] = useState('');
 
+  const cantidadNum = Number(cantidad);
+
   useEffect(() => {
     if (isOpen) {
-      setCantidad(0);
+      setCantidad('');
       setProveedorId(prenda?.proveedor?.id ?? null);
       setDocumentoReferencia('');
       setDestino('');
@@ -57,16 +59,16 @@ export const MovimientoModal: React.FC<Props> = ({
 
   const canSubmit = useMemo(() => {
     if (!prenda) return false;
-    if (cantidad <= 0) return false;
+    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) return false;
     if (tipo === 'ingreso') {
       if (proveedorId == null) return false;
     }
     if (tipo === 'egreso') {
-      if (cantidad > prenda.cantidadDisponible) return false;
+      if (cantidadNum > prenda.cantidadDisponible) return false;
       if (!destino.trim()) return false;
     }
     return true;
-  }, [cantidad, prenda, tipo, destino, proveedorId]);
+  }, [cantidadNum, prenda, tipo, destino, proveedorId]);
 
   if (!isOpen || !prenda) return null;
 
@@ -76,13 +78,13 @@ export const MovimientoModal: React.FC<Props> = ({
     const obs = observaciones.trim() ? observaciones.trim() : null;
     if (tipo === 'ingreso') {
       onSubmitIngreso({
-        cantidad,
+        cantidad: cantidadNum,
         proveedorId: proveedorId ?? null,
         documentoReferencia: documentoReferencia.trim() ? documentoReferencia.trim() : null,
         observaciones: obs,
       });
     } else {
-      onSubmitEgreso({ cantidad, destino: destino.trim(), observaciones: obs });
+      onSubmitEgreso({ cantidad: cantidadNum, destino: destino.trim(), observaciones: obs });
     }
   };
 
@@ -112,7 +114,7 @@ export const MovimientoModal: React.FC<Props> = ({
                 type="number"
                 className="form-input"
                 value={cantidad}
-                onChange={(e) => setCantidad(Number(e.target.value))}
+                onChange={(e) => setCantidad(e.target.value)}
                 min={1}
                 max={tipo === 'egreso' ? prenda.cantidadDisponible : undefined}
                 placeholder="Ej: 2"

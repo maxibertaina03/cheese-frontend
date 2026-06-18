@@ -34,13 +34,17 @@ export const ElementoForm: React.FC<ElementoFormProps> = ({
 }) => {
   const [nombre, setNombre] = useState(initialValues?.nombre || '');
   const [descripcion, setDescripcion] = useState(initialValues?.descripcion || '');
-  const [cantidadTotal, setCantidadTotal] = useState<number>(initialValues?.cantidadTotal || 0);
+  const [cantidadTotal, setCantidadTotal] = useState<string>(
+    initialValues?.cantidadTotal ? String(initialValues.cantidadTotal) : ''
+  );
+
+  const cantidadTotalNum = Number(cantidadTotal);
 
   const canSubmit = useMemo(() => {
     if (!nombre.trim()) return false;
-    if (mode === 'create') return cantidadTotal > 0;
+    if (mode === 'create') return Number.isFinite(cantidadTotalNum) && cantidadTotalNum > 0;
     return true;
-  }, [nombre, cantidadTotal, mode]);
+  }, [nombre, cantidadTotalNum, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +54,7 @@ export const ElementoForm: React.FC<ElementoFormProps> = ({
       descripcion: descripcion.trim() ? descripcion.trim() : null,
     };
     if (mode === 'create') {
-      onSubmit({ ...payloadBase, cantidadTotal });
+      onSubmit({ ...payloadBase, cantidadTotal: cantidadTotalNum });
       return;
     }
     onSubmit(payloadBase);
@@ -77,7 +81,7 @@ export const ElementoForm: React.FC<ElementoFormProps> = ({
               type="number"
               className="form-input"
               value={cantidadTotal}
-              onChange={(e) => setCantidadTotal(Number(e.target.value))}
+              onChange={(e) => setCantidadTotal(e.target.value)}
               min={1}
               placeholder="Ej: 10"
               required

@@ -6,6 +6,7 @@ import { IndumentariaCard } from './IndumentariaCard';
 interface Props {
   prendas: Indumentaria[];
   user: User | null;
+  vistaMode?: 'lista' | 'grid';
   onIngreso: (prenda: Indumentaria) => void;
   onEgreso: (prenda: Indumentaria) => void;
   onEdit: (prenda: Indumentaria) => void;
@@ -13,7 +14,7 @@ interface Props {
   onVerMovimientos: (prenda: Indumentaria) => void;
 }
 
-export const IndumentariaList: React.FC<Props> = ({ prendas, ...handlers }) => {
+export const IndumentariaList: React.FC<Props> = ({ prendas, vistaMode = 'lista', ...handlers }) => {
   if (prendas.length === 0) {
     return (
       <div className="empty-state">
@@ -24,7 +25,7 @@ export const IndumentariaList: React.FC<Props> = ({ prendas, ...handlers }) => {
   }
 
   return (
-    <div className="inventory-container lista">
+    <div className={`inventory-container ${vistaMode}`}>
       {prendas.map((prenda) => (
         <IndumentariaCard key={prenda.id} prenda={prenda} {...handlers} />
       ))}
