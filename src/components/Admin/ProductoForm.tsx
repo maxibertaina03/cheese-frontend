@@ -6,6 +6,7 @@ interface ProductoFormProps {
   producto?: Producto | null;  // Si existe, es modo edición
   tiposQueso: TipoQueso[];
   loading: boolean;
+  error?: string;
   onSubmit: (data: CreateProductoData) => Promise<void>;
   onClose: () => void;
 }
@@ -14,6 +15,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
   producto,
   tiposQueso,
   loading,
+  error,
   onSubmit,
   onClose,
 }) => {
@@ -53,6 +55,16 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
           </h3>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
+
+        {error && (
+          <div className="alert alert-error" style={{ margin: '0 0 1rem' }}>
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">
+              <div className="alert-title">No se pudo guardar</div>
+              <div>{error}</div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

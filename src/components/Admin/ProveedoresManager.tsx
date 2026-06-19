@@ -8,6 +8,7 @@ interface Props {
   loading: boolean;
   error: string;
   success: string;
+  onClearError?: () => void;
   onCreate: (data: Partial<Proveedor>) => Promise<{ success: boolean }>;
   onUpdate: (id: number, data: Partial<Proveedor>) => Promise<{ success: boolean }>;
   onDelete: (id: number) => Promise<{ success: boolean }>;
@@ -27,6 +28,7 @@ export const ProveedoresManager: React.FC<Props> = ({
   loading,
   error,
   success,
+  onClearError,
   onCreate,
   onUpdate,
   onDelete,
@@ -90,6 +92,7 @@ export const ProveedoresManager: React.FC<Props> = ({
         <button
           className="btn-primary"
           onClick={() => {
+            onClearError?.();
             setEditando(null);
             setShowForm(true);
           }}
@@ -152,6 +155,7 @@ export const ProveedoresManager: React.FC<Props> = ({
                       <button
                         className="btn-action btn-edit"
                         onClick={() => {
+                          onClearError?.();
                           setEditando(p);
                           setShowForm(true);
                         }}
@@ -176,14 +180,23 @@ export const ProveedoresManager: React.FC<Props> = ({
       </div>
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+        <div className="modal-overlay" onClick={() => { onClearError?.(); setShowForm(false); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">{editando ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h3>
-              <button className="btn-close" onClick={() => setShowForm(false)}>
+              <button className="btn-close" onClick={() => { onClearError?.(); setShowForm(false); }}>
                 ✖
               </button>
             </div>
+            {error && (
+              <div className="alert alert-error" style={{ margin: '0 1.5rem' }}>
+                <div className="alert-icon">⚠️</div>
+                <div className="alert-content">
+                  <div className="alert-title">No se pudo guardar</div>
+                  <div>{error}</div>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="form-section" style={{ padding: '1.5rem' }}>
               <div className="form-group">
                 <label className="form-label">Nombre *</label>
@@ -243,7 +256,7 @@ export const ProveedoresManager: React.FC<Props> = ({
                 />
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>
+                <button type="button" className="btn-cancel" onClick={() => { onClearError?.(); setShowForm(false); }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn-confirm" disabled={!form.nombre.trim() || loading}>

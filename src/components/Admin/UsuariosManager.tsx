@@ -17,6 +17,7 @@ interface UsuariosManagerProps {
   loading: boolean;
   error: string;
   success: string;
+  onClearError?: () => void;
   onCreate: (data: { username: string; password: string; rol: 'admin' | 'usuario'; permisos?: Modulo[] }) => Promise<{ success: boolean }>;
   onUpdate: (id: number, data: Partial<Usuario>) => Promise<{ success: boolean }>;
   onDelete: (id: number) => Promise<{ success: boolean }>;
@@ -27,6 +28,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
   loading,
   error,
   success,
+  onClearError,
   onCreate,
   onUpdate,
   onDelete,
@@ -84,6 +86,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
   };
 
   const openEdit = (usuario: Usuario) => {
+    onClearError?.();
     setUsuarioEditando(usuario);
     setFormData({
       username: usuario.username,
@@ -102,6 +105,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
         <button 
           className="btn-primary"
           onClick={() => {
+            onClearError?.();
             setUsuarioEditando(null);
             setFormData({ username: '', password: '', rol: 'usuario', permisos: [] });
             setShowForm(true);
@@ -193,14 +197,24 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
 
       {/* Modal Form */}
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+        <div className="modal-overlay" onClick={() => { onClearError?.(); setShowForm(false); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
                 {usuarioEditando ? 'Editar Usuario' : 'Nuevo Usuario'}
               </h3>
-              <button className="btn-close" onClick={() => setShowForm(false)}>✕</button>
+              <button className="btn-close" onClick={() => { onClearError?.(); setShowForm(false); }}>✕</button>
             </div>
+
+            {error && (
+              <div className="alert alert-error" style={{ margin: '0 0 1rem' }}>
+                <div className="alert-icon">⚠️</div>
+                <div className="alert-content">
+                  <div className="alert-title">No se pudo guardar</div>
+                  <div>{error}</div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -277,7 +291,7 @@ export const UsuariosManager: React.FC<UsuariosManagerProps> = ({
               )}
 
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>
+                <button type="button" className="btn-cancel" onClick={() => { onClearError?.(); setShowForm(false); }}>
                   Cancelar
                 </button>
                 <button 

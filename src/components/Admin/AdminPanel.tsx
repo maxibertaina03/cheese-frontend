@@ -13,6 +13,7 @@ interface AdminPanelProps {
   loadingProductos: boolean;
   errorProductos: string;
   successProductos: string;
+  onClearErrorProductos?: () => void;
   onCreateProducto: (data: CreateProductoData) => Promise<{ success: boolean }>;
   onUpdateProducto: (id: number, data: Partial<CreateProductoData>) => Promise<{ success: boolean }>;
   onDeleteProducto: (id: number) => Promise<{ success: boolean }>;
@@ -22,6 +23,7 @@ interface AdminPanelProps {
   loadingUsuarios: boolean;
   errorUsuarios: string;
   successUsuarios: string;
+  onClearErrorUsuarios?: () => void;
   onCreateUsuario: (data: { username: string; password: string; rol: 'admin' | 'usuario'; permisos?: Modulo[] }) => Promise<{ success: boolean }>;
   onUpdateUsuario: (id: number, data: Partial<Usuario>) => Promise<{ success: boolean }>;
   onDeleteUsuario: (id: number) => Promise<{ success: boolean }>;
@@ -31,6 +33,7 @@ interface AdminPanelProps {
   loadingProveedores: boolean;
   errorProveedores: string;
   successProveedores: string;
+  onClearErrorProveedores?: () => void;
   onCreateProveedor: (data: Partial<Proveedor>) => Promise<{ success: boolean }>;
   onUpdateProveedor: (id: number, data: Partial<Proveedor>) => Promise<{ success: boolean }>;
   onDeleteProveedor: (id: number) => Promise<{ success: boolean }>;
@@ -45,15 +48,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   loadingProductos,
   errorProductos,
   successProductos,
+  onClearErrorProductos,
   onCreateProducto,
   onUpdateProducto,
   onDeleteProducto,
-  
+
   // Usuarios
   usuarios,
   loadingUsuarios,
   errorUsuarios,
   successUsuarios,
+  onClearErrorUsuarios,
   onCreateUsuario,
   onUpdateUsuario,
   onDeleteUsuario,
@@ -63,6 +68,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   loadingProveedores,
   errorProveedores,
   successProveedores,
+  onClearErrorProveedores,
   onCreateProveedor,
   onUpdateProveedor,
   onDeleteProveedor,
@@ -122,6 +128,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             loading={loadingProductos}
             error={errorProductos}
             success={successProductos}
+            onClearError={onClearErrorProductos}
             onCreate={onCreateProducto}
             onUpdate={onUpdateProducto}
             onDelete={onDeleteProducto}
@@ -132,6 +139,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             loading={loadingUsuarios}
             error={errorUsuarios}
             success={successUsuarios}
+            onClearError={onClearErrorUsuarios}
             onCreate={onCreateUsuario}
             onUpdate={onUpdateUsuario}
             onDelete={onDeleteUsuario}
@@ -142,6 +150,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             loading={loadingProveedores}
             error={errorProveedores}
             success={successProveedores}
+            onClearError={onClearErrorProveedores}
             onCreate={onCreateProveedor}
             onUpdate={onUpdateProveedor}
             onDelete={onDeleteProveedor}

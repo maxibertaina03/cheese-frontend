@@ -10,6 +10,7 @@ interface ProductosManagerProps {
   loading: boolean;
   error: string;
   success: string;
+  onClearError?: () => void;
   onCreate: (data: CreateProductoData) => Promise<{ success: boolean }>;
   onUpdate: (id: number, data: Partial<CreateProductoData>) => Promise<{ success: boolean }>;
   onDelete: (id: number) => Promise<{ success: boolean }>;
@@ -21,6 +22,7 @@ export const ProductosManager: React.FC<ProductosManagerProps> = ({
   loading,
   error,
   success,
+  onClearError,
   onCreate,
   onUpdate,
   onDelete,
@@ -59,6 +61,7 @@ export const ProductosManager: React.FC<ProductosManagerProps> = ({
         <button 
           className="btn-primary"
           onClick={() => {
+            onClearError?.();
             setProductoEditando(null);
             setShowForm(true);
           }}
@@ -128,6 +131,7 @@ export const ProductosManager: React.FC<ProductosManagerProps> = ({
                     <button
                       className="btn-action btn-edit"
                       onClick={() => {
+                        onClearError?.();
                         setProductoEditando(producto);
                         setShowForm(true);
                       }}
@@ -156,8 +160,10 @@ export const ProductosManager: React.FC<ProductosManagerProps> = ({
           producto={productoEditando}
           tiposQueso={tiposQueso}
           loading={loading}
+          error={error}
           onSubmit={handleSubmit}
           onClose={() => {
+            onClearError?.();
             setShowForm(false);
             setProductoEditando(null);
           }}

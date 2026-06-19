@@ -72,6 +72,7 @@ function App() {
     createUsuario,
     updateUsuario,
     deleteUsuario,
+    setError: setErrorUsuarios,
   } = useUsuarios(apiFetch);
 
   const {
@@ -119,6 +120,7 @@ function App() {
     createProducto,
     updateProducto,
     deleteProducto,
+    setError: setErrorAdmin,
   } = useAdmin(apiFetch);
 
   const {
@@ -160,6 +162,7 @@ function App() {
     createProveedor,
     updateProveedor,
     deleteProveedor,
+    setError: setErrorProveedores,
   } = useProveedores(apiFetch);
 
   const fetchTiposQueso = useCallback(async () => {
@@ -634,6 +637,7 @@ function App() {
           loadingProductos={loadingAdmin}
           errorProductos={errorAdmin}
           successProductos={successAdmin}
+          onClearErrorProductos={() => setErrorAdmin('')}
           onCreateProducto={createProducto}
           onUpdateProducto={updateProducto}
           onDeleteProducto={deleteProducto}
@@ -641,6 +645,7 @@ function App() {
           loadingUsuarios={loadingUsuarios}
           errorUsuarios={errorUsuarios}
           successUsuarios={successUsuarios}
+          onClearErrorUsuarios={() => setErrorUsuarios('')}
           onCreateUsuario={createUsuario}
           onUpdateUsuario={updateUsuario}
           onDeleteUsuario={deleteUsuario}
@@ -648,6 +653,7 @@ function App() {
           loadingProveedores={loadingProveedores}
           errorProveedores={errorProveedores}
           successProveedores={successProveedores}
+          onClearErrorProveedores={() => setErrorProveedores('')}
           onCreateProveedor={createProveedor}
           onUpdateProveedor={updateProveedor}
           onDeleteProveedor={deleteProveedor}
