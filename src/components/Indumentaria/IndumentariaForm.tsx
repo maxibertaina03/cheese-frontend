@@ -64,6 +64,7 @@ type CommonProps = {
   proveedores: Proveedor[];
   opciones?: OpcionesIndumentaria;
   loading?: boolean;
+  error?: string;
   onClose: () => void;
   onCreateProveedor?: (nombre: string) => Promise<Proveedor | null>;
 };
@@ -83,7 +84,7 @@ type EditProps = CommonProps & {
 type Props = CreateProps | EditProps;
 
 export const IndumentariaForm: React.FC<Props> = (props) => {
-  const { mode, proveedores, opciones, loading, onClose, onCreateProveedor } = props;
+  const { mode, proveedores, opciones, loading, error, onClose, onCreateProveedor } = props;
   const initial = mode === 'edit' ? props.initial : undefined;
 
   const nombreOptions = useMemo(
@@ -152,6 +153,15 @@ export const IndumentariaForm: React.FC<Props> = (props) => {
 
   return (
     <form onSubmit={handleSubmit} className="form-section">
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          <div className="alert-icon">⚠️</div>
+          <div className="alert-content">
+            <div className="alert-title">No se pudo guardar</div>
+            <div>{error}</div>
+          </div>
+        </div>
+      )}
       <div className="form-grid">
         <div className="form-group">
           <label className="form-label">Nombre de la prenda</label>

@@ -133,6 +133,7 @@ function App() {
     deleteElemento,
     registrarIngreso,
     registrarEgreso,
+    setError: setErrorElementos,
   } = useElementos(apiFetch);
 
   const {
@@ -147,6 +148,7 @@ function App() {
     deleteIndumentaria,
     registrarIngreso: registrarIngresoIndumentaria,
     registrarEgreso: registrarEgresoIndumentaria,
+    setError: setErrorIndumentaria,
   } = useIndumentaria(apiFetch);
 
   const {
@@ -551,6 +553,8 @@ function App() {
           elementos={elementos}
           motivos={motivos}
           loading={loadingElementos}
+          error={errorElementos}
+          onClearError={() => setErrorElementos('')}
           onCreateElemento={createElemento}
           onUpdateElemento={updateElemento}
           onDeleteElemento={deleteElemento}
@@ -565,6 +569,8 @@ function App() {
           prendas={indumentaria}
           proveedores={proveedores}
           loading={loadingIndumentaria}
+          error={errorIndumentaria}
+          onClearError={() => setErrorIndumentaria('')}
           onCreate={createIndumentaria}
           onUpdate={updateIndumentaria}
           onDelete={deleteIndumentaria}

@@ -11,6 +11,7 @@ type ElementoFormCreateProps = {
   mode: 'create';
   initialValues?: ElementoFormBaseValues;
   loading?: boolean;
+  error?: string;
   onSubmit: (data: { nombre: string; descripcion?: string | null; cantidadTotal: number }) => void;
   onClose: () => void;
 };
@@ -19,6 +20,7 @@ type ElementoFormEditProps = {
   mode: 'edit';
   initialValues?: ElementoFormBaseValues;
   loading?: boolean;
+  error?: string;
   onSubmit: (data: { nombre: string; descripcion?: string | null }) => void;
   onClose: () => void;
 };
@@ -29,6 +31,7 @@ export const ElementoForm: React.FC<ElementoFormProps> = ({
   mode,
   initialValues,
   loading,
+  error,
   onSubmit,
   onClose,
 }) => {
@@ -62,6 +65,15 @@ export const ElementoForm: React.FC<ElementoFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="form-section">
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          <div className="alert-icon">⚠️</div>
+          <div className="alert-content">
+            <div className="alert-title">No se pudo guardar</div>
+            <div>{error}</div>
+          </div>
+        </div>
+      )}
       <div className="form-grid">
         <div className="form-group">
           <label className="form-label">Nombre del elemento</label>

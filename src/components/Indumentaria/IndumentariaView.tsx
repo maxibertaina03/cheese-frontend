@@ -13,6 +13,8 @@ interface Props {
   prendas: Indumentaria[];
   proveedores: Proveedor[];
   loading?: boolean;
+  error?: string;
+  onClearError?: () => void;
   onCreate: (data: any) => Promise<{ success: boolean }>;
   onUpdate: (id: number, data: any) => Promise<{ success: boolean }>;
   onDelete: (id: number) => Promise<{ success: boolean }>;
@@ -42,6 +44,8 @@ export const IndumentariaView: React.FC<Props> = ({
   prendas,
   proveedores,
   loading,
+  error,
+  onClearError,
   onCreate,
   onUpdate,
   onDelete,
@@ -161,7 +165,13 @@ export const IndumentariaView: React.FC<Props> = ({
               </button>
             )}
             {isAdmin && (
-              <button className="btn-primary" onClick={() => setShowForm(true)}>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  onClearError?.();
+                  setShowForm(true);
+                }}
+              >
                 Nueva Prenda
               </button>
             )}
@@ -275,7 +285,10 @@ export const IndumentariaView: React.FC<Props> = ({
           vistaMode={vistaMode}
           onIngreso={(p) => handleOpenMovimiento('ingreso', p)}
           onEgreso={(p) => handleOpenMovimiento('egreso', p)}
-          onEdit={(p) => setEditando(p)}
+          onEdit={(p) => {
+            onClearError?.();
+            setEditando(p);
+          }}
           onDelete={handleDelete}
           onVerMovimientos={handleOpenMovimientos}
         />
@@ -286,7 +299,13 @@ export const IndumentariaView: React.FC<Props> = ({
           <div className="modal modal-large">
             <div className="modal-header">
               <h3 className="modal-title">Nueva Prenda</h3>
-              <button className="btn-close" onClick={() => setShowForm(false)}>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  onClearError?.();
+                  setShowForm(false);
+                }}
+              >
                 ✖
               </button>
             </div>
@@ -296,8 +315,12 @@ export const IndumentariaView: React.FC<Props> = ({
                 proveedores={proveedores}
                 opciones={opciones}
                 loading={loading}
+                error={error}
                 onSubmit={handleCreate}
-                onClose={() => setShowForm(false)}
+                onClose={() => {
+                  onClearError?.();
+                  setShowForm(false);
+                }}
                 onCreateProveedor={onCreateProveedor}
               />
             </div>
@@ -310,7 +333,13 @@ export const IndumentariaView: React.FC<Props> = ({
           <div className="modal modal-large">
             <div className="modal-header">
               <h3 className="modal-title">Editar Prenda</h3>
-              <button className="btn-close" onClick={() => setEditando(null)}>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  onClearError?.();
+                  setEditando(null);
+                }}
+              >
                 ✖
               </button>
             </div>
@@ -321,8 +350,12 @@ export const IndumentariaView: React.FC<Props> = ({
                 proveedores={proveedores}
                 opciones={opciones}
                 loading={loading}
+                error={error}
                 onSubmit={handleUpdate}
-                onClose={() => setEditando(null)}
+                onClose={() => {
+                  onClearError?.();
+                  setEditando(null);
+                }}
                 onCreateProveedor={onCreateProveedor}
               />
             </div>

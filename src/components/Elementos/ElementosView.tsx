@@ -13,6 +13,8 @@ interface ElementosViewProps {
   elementos: Elemento[];
   motivos: Motivo[];
   loading?: boolean;
+  error?: string;
+  onClearError?: () => void;
   onCreateElemento: (data: { nombre: string; cantidadTotal: number; descripcion?: string | null }) => Promise<{ success: boolean }>;
   onUpdateElemento: (id: number, data: { nombre: string; descripcion?: string | null }) => Promise<{ success: boolean }>;
   onDeleteElemento: (elementoId: number) => Promise<{ success: boolean }>;
@@ -30,6 +32,8 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
   elementos,
   motivos,
   loading,
+  error,
+  onClearError,
   onCreateElemento,
   onUpdateElemento,
   onDeleteElemento,
@@ -151,7 +155,13 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
               </button>
             )}
             {isAdmin && (
-              <button className="btn-primary" onClick={() => setShowForm(true)}>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  onClearError?.();
+                  setShowForm(true);
+                }}
+              >
                 Nuevo Elemento
               </button>
             )}
@@ -265,7 +275,10 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
           vistaMode={vistaMode}
           onIngreso={(elemento) => handleOpenMovimiento('ingreso', elemento)}
           onEgreso={(elemento) => handleOpenMovimiento('egreso', elemento)}
-          onEdit={(elemento) => setElementoEditando(elemento)}
+          onEdit={(elemento) => {
+            onClearError?.();
+            setElementoEditando(elemento);
+          }}
           onDelete={handleDelete}
           onVerMovimientos={handleOpenMovimientos}
         />
@@ -276,7 +289,13 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
           <div className="modal">
             <div className="modal-header">
               <h3 className="modal-title">Nuevo Elemento</h3>
-              <button className="btn-close" onClick={() => setShowForm(false)}>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  onClearError?.();
+                  setShowForm(false);
+                }}
+              >
                 ✖
               </button>
             </div>
@@ -284,8 +303,12 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
               <ElementoForm
                 mode="create"
                 loading={loading}
+                error={error}
                 onSubmit={handleCreate}
-                onClose={() => setShowForm(false)}
+                onClose={() => {
+                  onClearError?.();
+                  setShowForm(false);
+                }}
               />
             </div>
           </div>
@@ -297,7 +320,13 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
           <div className="modal">
             <div className="modal-header">
               <h3 className="modal-title">Editar Elemento</h3>
-              <button className="btn-close" onClick={() => setElementoEditando(null)}>
+              <button
+                className="btn-close"
+                onClick={() => {
+                  onClearError?.();
+                  setElementoEditando(null);
+                }}
+              >
                 ✖
               </button>
             </div>
@@ -305,12 +334,16 @@ export const ElementosView: React.FC<ElementosViewProps> = ({
               <ElementoForm
                 mode="edit"
                 loading={loading}
+                error={error}
                 initialValues={{
                   nombre: elementoEditando.nombre,
                   descripcion: elementoEditando.descripcion || '',
                 }}
                 onSubmit={handleUpdate}
-                onClose={() => setElementoEditando(null)}
+                onClose={() => {
+                  onClearError?.();
+                  setElementoEditando(null);
+                }}
               />
             </div>
           </div>
