@@ -54,6 +54,20 @@ export interface User {
 
 export type FiltroHistorial = 'todos' | 'activos' | 'agotados';
 
+// Stock reconstruido a una fecha de corte (ej: lunes más reciente)
+export interface StockAlCorteItem {
+  tipoQuesoId: number;
+  tipoQueso: string;
+  cantidad: number;
+  pesoTotal: number;
+}
+
+export interface StockAlCorteResponse {
+  fechaCorte: string;
+  totalUnidades: number;
+  items: StockAlCorteItem[];
+}
+
 // ← NUEVO: Tipo para crear producto
 export interface CreateProductoData {
   nombre: string;

@@ -1,7 +1,7 @@
 // src/App.tsx - Versión con Dashboard integrado
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -15,6 +15,7 @@ import { InventoryForm } from './components/Inventory/InventoryForm';
 import { InventoryList } from './components/Inventory/InventoryList';
 import { EditModal } from './components/Modals/EditModal';
 import { CutModal } from './components/Modals/CutModal';
+import { StockAlLunesModal } from './components/Modals/StockAlLunesModal';
 import { DeleteConfirmModal } from './components/Admin/DeleteConfirmModal';
 import { HistorialView } from './components/History/HistorialView';
 import { AdminPanel } from './components/Admin/AdminPanel';
@@ -46,6 +47,11 @@ function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [exportingInventarioPdf, setExportingInventarioPdf] = useState(false);
   const [exportingHistorialPdf, setExportingHistorialPdf] = useState(false);
+
+  // Listado del stock al último lunes (reconstrucción histórica)
+  const [stockLunesData, setStockLunesData] = useState<StockAlCorteResponse | null>(null);
+  const [loadingStockLunes, setLoadingStockLunes] = useState(false);
+  const [showStockLunesModal, setShowStockLunesModal] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
   const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria'>('inventario');
@@ -381,6 +387,40 @@ function App() {
     setShowForm(!showForm);
   };
 
+  // Calcula el inicio (00:00) del lunes más reciente en la zona horaria del navegador.
+  // Si hoy es lunes, devuelve hoy a las 00:00.
+  const getUltimoLunes = (): Date => {
+    const now = new Date();
+    const diasDesdeLunes = (now.getDay() + 6) % 7; // 0=domingo => 6, 1=lunes => 0, ...
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasDesdeLunes, 0, 0, 0, 0);
+  };
+
+  const handleListadoStockLunes = async () => {
+    try {
+      setLoadingStockLunes(true);
+      setShowStockLunesModal(true);
+      setStockLunesData(null);
+
+      const fecha = getUltimoLunes().toISOString();
+      const response = await apiService.getStockAlCorte(apiFetch, fecha);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+
+      const data: StockAlCorteResponse = await response.json();
+      setStockLunesData(data);
+    } catch (error) {
+      console.error('Error al obtener el stock al lunes:', error);
+      setShowStockLunesModal(false);
+      setError('No se pudo calcular el stock al último lunes.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoadingStockLunes(false);
+    }
+  };
+
   const handleExportInventarioPdf = async (
     params: {
       search?: string;
@@ -524,6 +564,8 @@ function App() {
             onDelete={handleDeleteUnidad}
             onExportPdf={handleExportInventarioPdf}
             exportingPdf={exportingInventarioPdf}
+            onListadoStockLunes={handleListadoStockLunes}
+            loadingStockLunes={loadingStockLunes}
           />
         </>
       ) : vistaActual === 'historial' ? (
@@ -605,6 +647,14 @@ function App() {
           unidad={unidadParaEditar}
           onClose={handleCloseEditModal}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {showStockLunesModal && (
+        <StockAlLunesModal
+          data={stockLunesData}
+          loading={loadingStockLunes}
+          onClose={() => setShowStockLunesModal(false)}
         />
       )}
 

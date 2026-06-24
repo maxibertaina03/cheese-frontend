@@ -70,6 +70,10 @@ export const apiService = {
   // Unidades
   getUnidades: (apiFetch: any) => apiFetch(`${API_URL}/api/unidades`),
   getHistorial: (apiFetch: any) => apiFetch(`${API_URL}/api/unidades/historial`),
+
+  // Stock reconstruido a una fecha de corte (por defecto el lunes más reciente)
+  getStockAlCorte: (apiFetch: any, fecha?: string) =>
+    apiFetch(`${API_URL}/api/unidades/stock-al-corte${buildQueryString({ fecha })}`),
   
   createUnidad: (apiFetch: any, data: any) =>
     apiFetch(`${API_URL}/api/unidades`, {

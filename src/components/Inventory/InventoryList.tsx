@@ -16,6 +16,8 @@ interface InventoryListProps {
     searchObservaciones?: 'true' | 'false';
   }, visibleRows: Unidad[]) => void;
   exportingPdf: boolean;
+  onListadoStockLunes: () => void;
+  loadingStockLunes: boolean;
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
@@ -27,6 +29,8 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   onDelete,
   onExportPdf,
   exportingPdf,
+  onListadoStockLunes,
+  loadingStockLunes,
 }) => {
   const [filtroInventario, setFiltroInventario] = useState('');
   const [busquedaObservaciones, setBusquedaObservaciones] = useState(false);
@@ -93,6 +97,10 @@ export const InventoryList: React.FC<InventoryListProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button className="btn-export" onClick={handleExportPdf} disabled={exportingPdf}>
             {exportingPdf ? 'Exportando PDF...' : 'Exportar PDF'}
+          </button>
+
+          <button className="btn-export" onClick={onListadoStockLunes} disabled={loadingStockLunes}>
+            {loadingStockLunes ? 'Calculando...' : 'Listado del stock al lunes'}
           </button>
 
           <div className="view-toggle">
