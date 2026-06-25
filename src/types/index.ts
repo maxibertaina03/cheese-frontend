@@ -54,18 +54,32 @@ export interface User {
 
 export type FiltroHistorial = 'todos' | 'activos' | 'agotados';
 
-// Stock reconstruido a una fecha de corte (ej: lunes más reciente)
-export interface StockAlCorteItem {
-  tipoQuesoId: number;
-  tipoQueso: string;
+// Stock reconstruido a una fecha de corte (ej: lunes más reciente), por producto
+export interface StockLunesProducto {
+  productoId: number;
+  producto: string;
+  plu: string;
+  tipoQueso: string | null;
   cantidad: number;
-  pesoTotal: number;
+}
+
+// Movimiento (corte o baja) ocurrido desde la fecha de corte hasta ahora
+export interface MovimientoDesdeLunes {
+  tipo: 'corte' | 'baja';
+  unidadId: number;
+  producto: string;
+  tipoQueso: string | null;
+  peso: number | null;
+  motivo: string | null;
+  fecha: string;
+  agotoUnidad: boolean;
 }
 
 export interface StockAlCorteResponse {
   fechaCorte: string;
   totalUnidades: number;
-  items: StockAlCorteItem[];
+  productos: StockLunesProducto[];
+  movimientos: MovimientoDesdeLunes[];
 }
 
 // ← NUEVO: Tipo para crear producto
