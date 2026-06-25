@@ -27,6 +27,7 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
   const [observaciones, setObservaciones] = useState('');
   const [quesosSel, setQuesosSel] = useState<Record<number, boolean>>({});
   const [elementosQty, setElementosQty] = useState<Record<number, number>>({});
+  const [expandido, setExpandido] = useState<Record<number, boolean>>({});
 
   // Quesos vendibles: enteros, activos y con precio por unidad cargado.
   const quesosDisponibles = useMemo(
@@ -39,6 +40,26 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
       ),
     [unidades]
   );
+
+  // Agrupados por producto para mostrar la cantidad y desglosar al tocar.
+  const gruposQuesos = useMemo(() => {
+    const map = new Map<
+      number,
+      { productoId: number; nombre: string; precio: number; unidades: Unidad[] }
+    >();
+    quesosDisponibles.forEach((u) => {
+      const pid = u.producto!.id;
+      const grupo = map.get(pid) || {
+        productoId: pid,
+        nombre: u.producto!.nombre,
+        precio: Number(u.producto!.precioUnitario ?? 0),
+        unidades: [],
+      };
+      grupo.unidades.push(u);
+      map.set(pid, grupo);
+    });
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [quesosDisponibles]);
 
   const elementosVendibles = useMemo(
     () => elementos.filter((e) => e.esVendible && (e.precioUnitario ?? 0) > 0),
@@ -118,43 +139,72 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
           </select>
         </div>
 
-        {/* Quesos */}
+        {/* Quesos: agrupados por producto, se desglosan al tocar */}
         <h4 style={{ margin: '1rem 0 0.5rem' }}>Quesos disponibles</h4>
-        {quesosDisponibles.length === 0 ? (
+        {gruposQuesos.length === 0 ? (
           <p style={{ color: '#888', fontSize: '0.9rem' }}>
             No hay quesos enteros con precio cargado. Cargá el precio en la pestaña Precios.
           </p>
         ) : (
-          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
-            {quesosDisponibles.map((u) => (
-              <label
-                key={u.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  padding: '0.5rem 0.75rem',
-                  borderBottom: '1px solid #f0f0f0',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={!!quesosSel[u.id]}
-                  onChange={(e) => setQuesosSel({ ...quesosSel, [u.id]: e.target.checked })}
-                />
-                <span style={{ flex: 1 }}>
-                  <strong>{u.producto?.nombre}</strong>{' '}
-                  <span style={{ color: '#888', fontSize: '0.85rem' }}>
-                    #{u.id} · PLU {u.producto?.plu} · {u.pesoInicial}g
-                    {u.fechaElaboracion ? ` · elab ${u.fechaElaboracion}` : ''}
-                  </span>
-                </span>
-                <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
-                  {money(Number(u.producto?.precioUnitario ?? 0))}
-                </span>
-              </label>
-            ))}
+          <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
+            {gruposQuesos.map((g) => {
+              const seleccionadosEnGrupo = g.unidades.filter((u) => quesosSel[u.id]).length;
+              const abierto = !!expandido[g.productoId];
+              return (
+                <div key={g.productoId} style={{ borderBottom: '1px solid #eee' }}>
+                  {/* Cabecera del producto (clic para desglosar) */}
+                  <div
+                    onClick={() => setExpandido({ ...expandido, [g.productoId]: !abierto })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      padding: '0.6rem 0.75rem',
+                      cursor: 'pointer',
+                      background: '#f9fafb',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <span style={{ width: 14, color: '#6b7280' }}>{abierto ? '▾' : '▸'}</span>
+                    <span style={{ flex: 1 }}>
+                      <strong>{g.nombre}</strong>{' '}
+                      <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                        ({g.unidades.length} disponible{g.unidades.length === 1 ? '' : 's'}
+                        {seleccionadosEnGrupo > 0 ? ` · ${seleccionadosEnGrupo} elegido${seleccionadosEnGrupo === 1 ? '' : 's'}` : ''})
+                      </span>
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{money(g.precio)} c/u</span>
+                  </div>
+
+                  {/* Desglose unidad por unidad */}
+                  {abierto &&
+                    g.unidades.map((u) => (
+                      <label
+                        key={u.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.6rem',
+                          padding: '0.45rem 0.75rem 0.45rem 2rem',
+                          borderTop: '1px solid #f3f4f6',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!quesosSel[u.id]}
+                          onChange={(e) => setQuesosSel({ ...quesosSel, [u.id]: e.target.checked })}
+                        />
+                        <span style={{ flex: 1, fontSize: '0.9rem' }}>
+                          #{u.id} · {u.pesoInicial}g
+                          {u.fechaElaboracion ? ` · elab ${u.fechaElaboracion}` : ''}
+                          {u.numeroLote ? ` · lote ${u.numeroLote}` : ''}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+              );
+            })}
           </div>
         )}
 

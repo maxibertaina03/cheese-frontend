@@ -361,7 +361,9 @@ function App() {
   const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
     const result = await updateProducto(id, { precioUnitario });
     if (result.success) {
-      await fetchProductos();
+      // Refrescar también las unidades: el precio viaja dentro de unidad.producto y
+      // hay que actualizarlo para que el selector de la nota de pedido lo vea.
+      await Promise.all([fetchProductos(), fetchUnidades()]);
     }
     return result;
   };
