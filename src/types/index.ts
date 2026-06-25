@@ -41,6 +41,7 @@ export interface Unidad {
   observacionesIngreso: string | null;
   fechaElaboracion?: string | null;   // ← Identificación del queso (facturación)
   numeroLote?: string | null;
+  fechaVenta?: string | null;          // ← Vendido en una nota de pedido
   motivo: Motivo;
 }
 
@@ -68,7 +69,7 @@ export interface StockLunesProducto {
 
 // Movimiento (corte o baja) ocurrido desde la fecha de corte hasta ahora
 export interface MovimientoDesdeLunes {
-  tipo: 'corte' | 'baja';
+  tipo: 'corte' | 'baja' | 'venta';
   unidadId: number;
   producto: string;
   tipoQueso: string | null;
@@ -144,6 +145,48 @@ export interface Empresa {
   telefono: string | null;
   email: string | null;
   condicionIva: string | null;
+}
+
+// ← Facturación: nota de pedido (venta)
+export type EstadoNotaPedido = 'confirmada' | 'pagada_parcial' | 'pagada_total' | 'anulada';
+
+export interface NotaPedidoItem {
+  id: number;
+  tipoItem: 'queso' | 'elemento';
+  descripcion: string;
+  plu: string | null;
+  pesoGramos: number | null;
+  fechaElaboracion: string | null;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+export interface NotaPedido {
+  id: number;
+  serie: string;
+  numero: number;
+  fecha: string;
+  cliente: Cliente | null;
+  total: number;
+  saldoPendiente: number;
+  estado: EstadoNotaPedido;
+  observaciones: string | null;
+  items?: NotaPedidoItem[];
+}
+
+// Payload para crear una nota de pedido
+export interface CreateNotaPedidoItem {
+  tipoItem: 'queso' | 'elemento';
+  unidadId?: number;
+  elementoId?: number;
+  cantidad?: number;
+}
+
+export interface CreateNotaPedidoData {
+  clienteId: number;
+  observaciones?: string | null;
+  items: CreateNotaPedidoItem[];
 }
 
 export interface MovimientoElemento {

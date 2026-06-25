@@ -146,13 +146,18 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
                     <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #555)' }}>
                       {mov.tipo === 'baja' ? (
                         <span>Dado de baja</span>
+                      ) : mov.tipo === 'venta' ? (
+                        <span>
+                          Vendido (nota de pedido)
+                          {mov.peso != null ? ` · ${formatearPeso(mov.peso)}` : ''}
+                        </span>
                       ) : (
                         <span>
                           Se cortó {mov.peso != null ? formatearPeso(mov.peso) : ''}
                           {mov.motivo ? ` · ${mov.motivo}` : ''}
                         </span>
                       )}
-                      {mov.agotoUnidad && (
+                      {mov.agotoUnidad && mov.tipo === 'corte' && (
                         <span
                           style={{
                             marginLeft: '0.5rem',
@@ -161,7 +166,7 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
                             fontSize: '0.8rem',
                           }}
                         >
-                          {mov.tipo === 'baja' ? '' : '· quedó agotado'}
+                          · quedó agotado
                         </span>
                       )}
                     </div>

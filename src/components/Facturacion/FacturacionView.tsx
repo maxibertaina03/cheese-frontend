@@ -1,9 +1,10 @@
 // src/components/Facturacion/FacturacionView.tsx
 import React, { useState } from 'react';
-import { Cliente, Elemento, Empresa, Producto } from '../../types';
+import { Cliente, Elemento, Empresa, NotaPedido, Producto, Unidad, CreateNotaPedidoData } from '../../types';
 import { ClientesManager } from './ClientesManager';
 import { EmpresaForm } from './EmpresaForm';
 import { PreciosManager } from './PreciosManager';
+import { NotasPedidoManager } from './NotasPedidoManager';
 
 interface Props {
   // Clientes
@@ -34,12 +35,21 @@ interface Props {
     id: number,
     data: { precioUnitario: number; esVendible: boolean }
   ) => Promise<{ success: boolean }>;
+
+  // Notas de pedido
+  notas: NotaPedido[];
+  unidades: Unidad[];
+  loadingNotas: boolean;
+  errorNotas: string;
+  successNotas: string;
+  onCrearNota: (data: CreateNotaPedidoData) => Promise<{ success: boolean }>;
+  onImprimirNota: (id: number) => void;
 }
 
-type Tab = 'clientes' | 'empresa' | 'precios';
+type Tab = 'notas' | 'clientes' | 'precios' | 'empresa';
 
 export const FacturacionView: React.FC<Props> = (props) => {
-  const [tab, setTab] = useState<Tab>('clientes');
+  const [tab, setTab] = useState<Tab>('notas');
 
   return (
     <div className="card">
@@ -61,6 +71,12 @@ export const FacturacionView: React.FC<Props> = (props) => {
         }}
       >
         <button
+          className={`filter-btn ${tab === 'notas' ? 'active' : ''}`}
+          onClick={() => setTab('notas')}
+        >
+          🧾 Notas de pedido
+        </button>
+        <button
           className={`filter-btn ${tab === 'clientes' ? 'active' : ''}`}
           onClick={() => setTab('clientes')}
         >
@@ -80,7 +96,19 @@ export const FacturacionView: React.FC<Props> = (props) => {
         </button>
       </div>
 
-      {tab === 'clientes' ? (
+      {tab === 'notas' ? (
+        <NotasPedidoManager
+          notas={props.notas}
+          clientes={props.clientes}
+          unidades={props.unidades}
+          elementos={props.elementos}
+          loading={props.loadingNotas}
+          error={props.errorNotas}
+          success={props.successNotas}
+          onCrearNota={props.onCrearNota}
+          onImprimir={props.onImprimirNota}
+        />
+      ) : tab === 'clientes' ? (
         <ClientesManager
           clientes={props.clientes}
           loading={props.loadingClientes}

@@ -1,7 +1,7 @@
 // src/App.tsx - Versión con Dashboard integrado
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso, StockAlCorteResponse, Modulo } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -27,6 +27,7 @@ import { useIndumentaria } from './hooks/useIndumentaria';
 import { useProveedores } from './hooks/useProveedores';
 import { useClientes } from './hooks/useClientes';
 import { useEmpresa } from './hooks/useEmpresa';
+import { useNotasPedido } from './hooks/useNotasPedido';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
 import { FacturacionView } from './components/Facturacion/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
@@ -197,6 +198,15 @@ function App() {
     saveEmpresa,
   } = useEmpresa(apiFetch);
 
+  const {
+    notas,
+    loading: loadingNotas,
+    error: errorNotas,
+    success: successNotas,
+    fetchNotas,
+    createNota,
+  } = useNotasPedido(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -219,14 +229,14 @@ function App() {
           fetchElementos(),
           fetchIndumentaria(),
           fetchProveedores(),
-          // Clientes y empresa solo si el usuario tiene acceso a facturación
-          ...(canAccess(user, 'facturacion') ? [fetchClientes(), fetchEmpresa()] : []),
+          // Clientes, empresa y notas solo si el usuario tiene acceso a facturación
+          ...(canAccess(user, 'facturacion') ? [fetchClientes(), fetchEmpresa(), fetchNotas()] : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -361,6 +371,34 @@ function App() {
     data: { precioUnitario: number; esVendible: boolean }
   ) => {
     return updateElemento(id, data);
+  };
+
+  // Facturación: imprimir/descargar el PDF de una nota de pedido
+  const handleImprimirNota = async (id: number) => {
+    try {
+      const response = await apiService.downloadNotaPedidoPdf(apiFetch, id);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const nota = notas.find((n) => n.id === id);
+      downloadBlob(blob, `nota_pedido_${nota ? `${nota.serie}-${nota.numero}` : id}.pdf`);
+    } catch (error) {
+      console.error('Error al imprimir la nota de pedido:', error);
+      setError('No se pudo generar el PDF de la nota de pedido.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  // Facturación: crear nota de pedido, refrescar stock y descargar el PDF
+  const handleCrearNotaPedido = async (data: CreateNotaPedidoData) => {
+    const result = await createNota(data);
+    if (result.success && result.nota) {
+      await Promise.all([fetchUnidades(), fetchElementos()]);
+      await handleImprimirNota(result.nota.id);
+    }
+    return { success: result.success };
   };
 
   const handleCreateUnidad = async (data: {
@@ -728,6 +766,13 @@ function App() {
           successPrecios={successAdmin || successElementos}
           onSaveProductoPrecio={handleSaveProductoPrecio}
           onSaveElemento={handleSaveElementoVenta}
+          notas={notas}
+          unidades={unidades}
+          loadingNotas={loadingNotas}
+          errorNotas={errorNotas}
+          successNotas={successNotas}
+          onCrearNota={handleCrearNotaPedido}
+          onImprimirNota={handleImprimirNota}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard
