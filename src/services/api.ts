@@ -218,7 +218,11 @@ export const apiService = {
       body: JSON.stringify(data),
     }),
 
-  updateElemento: (apiFetch: any, id: number, data: { nombre: string; descripcion?: string | null }) =>
+  updateElemento: (
+    apiFetch: any,
+    id: number,
+    data: { nombre?: string; descripcion?: string | null; precioUnitario?: number; esVendible?: boolean }
+  ) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -243,6 +247,37 @@ export const apiService = {
 
   getElementoMovimientos: (apiFetch: any, id: number) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/movimientos`),
+
+  // Facturación - Clientes
+  getClientes: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/clientes`),
+
+  createCliente: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/clientes`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateCliente: (apiFetch: any, id: number, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/clientes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteCliente: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/clientes/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Facturación - Empresa (emisor, singleton)
+  getEmpresa: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/empresa`),
+
+  updateEmpresa: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/empresa`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   // Proveedores
   getProveedores: (apiFetch: any) =>

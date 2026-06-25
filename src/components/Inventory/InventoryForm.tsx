@@ -12,6 +12,8 @@ interface InventoryFormProps {
     pesoInicial: number;
     observacionesIngreso: string | null;
     motivoId: number | null;
+    fechaElaboracion: string;
+    numeroLote: string | null;
   }) => Promise<{ success: boolean }>;
   onClose: () => void;
 }
@@ -27,6 +29,8 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [observacionesIngreso, setObservacionesIngreso] = useState('');
   const [motivoIngresoId, setMotivoIngresoId] = useState<number | null>(null);
+  const [fechaElaboracion, setFechaElaboracion] = useState('');
+  const [numeroLote, setNumeroLote] = useState('');
   const [error, setError] = useState('');
   const [pesoDetectado, setPesoDetectado] = useState(0);
 
@@ -59,6 +63,11 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
       return;
     }
 
+    if (!fechaElaboracion) {
+      setError('Debe ingresar la fecha de elaboración del queso');
+      return;
+    }
+
     const { result, error: decodeError } = decodificarBarcode(codigoBarras, productos);
     if (decodeError || !result) {
       setError(decodeError || 'Error al decodificar código de barras');
@@ -70,6 +79,8 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
       pesoInicial: result.peso,
       observacionesIngreso: observacionesIngreso || null,
       motivoId: motivoIngresoId,
+      fechaElaboracion,
+      numeroLote: numeroLote.trim() || null,
     });
 
     if (success) {
@@ -77,6 +88,8 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
       setProductoSeleccionado(null);
       setObservacionesIngreso('');
       setMotivoIngresoId(null);
+      setFechaElaboracion('');
+      setNumeroLote('');
       setPesoDetectado(0);
       onClose();
     }
@@ -128,6 +141,31 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
             </div>
 
             <div className="form-group">
+              <label className="form-label">Fecha de Elaboración *</label>
+              <input
+                type="date"
+                className="form-input"
+                value={fechaElaboracion}
+                onChange={(e) => setFechaElaboracion(e.target.value)}
+                required
+              />
+              <div className="form-hint">
+                Obligatorio para identificar el queso en la venta
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">N° de Lote (opcional)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={numeroLote}
+                onChange={(e) => setNumeroLote(e.target.value)}
+                placeholder="Ej: L-2024-031"
+              />
+            </div>
+
+            <div className="form-group">
               <label className="form-label">Observaciones de Ingreso (opcional)</label>
               <textarea
                 className="form-input"
@@ -161,7 +199,7 @@ export const InventoryForm: React.FC<InventoryFormProps> = ({
       <button
         className="btn-submit"
         onClick={handleSubmit}
-        disabled={loading || !productoSeleccionado}
+        disabled={loading || !productoSeleccionado || !fechaElaboracion}
       >
         {loading ? 'Procesando...' : 'Registrar Unidad'}
       </button>

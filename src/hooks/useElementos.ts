@@ -74,7 +74,10 @@ export const useElementos = (apiFetch: any) => {
     }
   };
 
-  const updateElemento = async (elementoId: number, data: { nombre: string; descripcion?: string | null }) => {
+  const updateElemento = async (
+    elementoId: number,
+    data: { nombre?: string; descripcion?: string | null; precioUnitario?: number; esVendible?: boolean }
+  ) => {
     setLoading(true);
     setError('');
     try {

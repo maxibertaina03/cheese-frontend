@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { apiService } from '../services/api';
 
-export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial';
+export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial' | 'facturacion';
 
 export interface Usuario {
   id: number;

@@ -1,0 +1,115 @@
+// src/components/Facturacion/FacturacionView.tsx
+import React, { useState } from 'react';
+import { Cliente, Elemento, Empresa, Producto } from '../../types';
+import { ClientesManager } from './ClientesManager';
+import { EmpresaForm } from './EmpresaForm';
+import { PreciosManager } from './PreciosManager';
+
+interface Props {
+  // Clientes
+  clientes: Cliente[];
+  loadingClientes: boolean;
+  errorClientes: string;
+  successClientes: string;
+  onClearErrorClientes?: () => void;
+  onCreateCliente: (data: Partial<Cliente>) => Promise<{ success: boolean }>;
+  onUpdateCliente: (id: number, data: Partial<Cliente>) => Promise<{ success: boolean }>;
+  onDeleteCliente: (id: number) => Promise<{ success: boolean }>;
+
+  // Empresa
+  empresa: Empresa | null;
+  loadingEmpresa: boolean;
+  errorEmpresa: string;
+  successEmpresa: string;
+  onSaveEmpresa: (data: Partial<Empresa>) => Promise<{ success: boolean }>;
+
+  // Precios
+  productos: Producto[];
+  elementos: Elemento[];
+  loadingPrecios: boolean;
+  errorPrecios: string;
+  successPrecios: string;
+  onSaveProductoPrecio: (id: number, precioUnitario: number | null) => Promise<{ success: boolean }>;
+  onSaveElemento: (
+    id: number,
+    data: { precioUnitario: number; esVendible: boolean }
+  ) => Promise<{ success: boolean }>;
+}
+
+type Tab = 'clientes' | 'empresa' | 'precios';
+
+export const FacturacionView: React.FC<Props> = (props) => {
+  const [tab, setTab] = useState<Tab>('clientes');
+
+  return (
+    <div className="card">
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ margin: 0 }}>Facturación</h2>
+        <p style={{ color: '#6b7280', margin: '0.25rem 0 0' }}>
+          Base del módulo: clientes, datos de la empresa y precios de venta.
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+          borderBottom: '2px solid #e5e7eb',
+          paddingBottom: '0.5rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <button
+          className={`filter-btn ${tab === 'clientes' ? 'active' : ''}`}
+          onClick={() => setTab('clientes')}
+        >
+          👤 Clientes
+        </button>
+        <button
+          className={`filter-btn ${tab === 'precios' ? 'active' : ''}`}
+          onClick={() => setTab('precios')}
+        >
+          💲 Precios
+        </button>
+        <button
+          className={`filter-btn ${tab === 'empresa' ? 'active' : ''}`}
+          onClick={() => setTab('empresa')}
+        >
+          🏢 Mi empresa
+        </button>
+      </div>
+
+      {tab === 'clientes' ? (
+        <ClientesManager
+          clientes={props.clientes}
+          loading={props.loadingClientes}
+          error={props.errorClientes}
+          success={props.successClientes}
+          onClearError={props.onClearErrorClientes}
+          onCreate={props.onCreateCliente}
+          onUpdate={props.onUpdateCliente}
+          onDelete={props.onDeleteCliente}
+        />
+      ) : tab === 'precios' ? (
+        <PreciosManager
+          productos={props.productos}
+          elementos={props.elementos}
+          loading={props.loadingPrecios}
+          error={props.errorPrecios}
+          success={props.successPrecios}
+          onSaveProductoPrecio={props.onSaveProductoPrecio}
+          onSaveElemento={props.onSaveElemento}
+        />
+      ) : (
+        <EmpresaForm
+          empresa={props.empresa}
+          loading={props.loadingEmpresa}
+          error={props.errorEmpresa}
+          success={props.successEmpresa}
+          onSave={props.onSaveEmpresa}
+        />
+      )}
+    </div>
+  );
+};

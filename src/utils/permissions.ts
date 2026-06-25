@@ -8,7 +8,7 @@ export const canAccess = (user: User | null, modulo: Modulo): boolean =>
   isAdmin(user) || !!user?.permisos?.includes(modulo);
 
 // Lista de secciones accesibles para el usuario (admin = todas).
-const TODOS_LOS_MODULOS: Modulo[] = ['quesos', 'elementos', 'indumentaria', 'dashboard', 'historial'];
+const TODOS_LOS_MODULOS: Modulo[] = ['quesos', 'elementos', 'indumentaria', 'dashboard', 'historial', 'facturacion'];
 
 export const modulosAccesibles = (user: User | null): Modulo[] =>
   isAdmin(user) ? TODOS_LOS_MODULOS : (user?.permisos ?? []);

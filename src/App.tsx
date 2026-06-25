@@ -1,7 +1,7 @@
 // src/App.tsx - Versión con Dashboard integrado
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso, StockAlCorteResponse } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse, Modulo } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -25,7 +25,10 @@ import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
 import { useIndumentaria } from './hooks/useIndumentaria';
 import { useProveedores } from './hooks/useProveedores';
+import { useClientes } from './hooks/useClientes';
+import { useEmpresa } from './hooks/useEmpresa';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
+import { FacturacionView } from './components/Facturacion/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
 
 const downloadBlob = (blob: Blob, filename: string) => {
@@ -56,7 +59,7 @@ function App() {
   const [imprimiendoStockLunes, setImprimiendoStockLunes] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
-  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria'>('inventario');
+  const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria' | 'facturacion'>('inventario');
   
   const [unidadEliminando, setUnidadEliminando] = useState<Unidad | null>(null);
   
@@ -173,6 +176,27 @@ function App() {
     setError: setErrorProveedores,
   } = useProveedores(apiFetch);
 
+  const {
+    clientes,
+    loading: loadingClientes,
+    error: errorClientes,
+    success: successClientes,
+    fetchClientes,
+    createCliente,
+    updateCliente,
+    deleteCliente,
+    setError: setErrorClientes,
+  } = useClientes(apiFetch);
+
+  const {
+    empresa,
+    loading: loadingEmpresa,
+    error: errorEmpresa,
+    success: successEmpresa,
+    fetchEmpresa,
+    saveEmpresa,
+  } = useEmpresa(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -195,12 +219,14 @@ function App() {
           fetchElementos(),
           fetchIndumentaria(),
           fetchProveedores(),
+          // Clientes y empresa solo si el usuario tiene acceso a facturación
+          ...(canAccess(user, 'facturacion') ? [fetchClientes(), fetchEmpresa()] : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -213,11 +239,12 @@ function App() {
     }
     if (landingSet.current) return;
 
-    const orden: { modulo: 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial'; vista: typeof vistaActual }[] = [
+    const orden: { modulo: Modulo; vista: typeof vistaActual }[] = [
       { modulo: 'quesos', vista: 'inventario' },
       { modulo: 'dashboard', vista: 'dashboard' },
       { modulo: 'elementos', vista: 'elementos' },
       { modulo: 'indumentaria', vista: 'indumentaria' },
+      { modulo: 'facturacion', vista: 'facturacion' },
       { modulo: 'historial', vista: 'historial' },
     ];
     const primera = orden.find((o) => canAccess(user, o.modulo));
@@ -320,11 +347,29 @@ function App() {
     }
   };
 
+  // Facturación: guardar precio por unidad de un producto y refrescar el inventario
+  const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
+    const result = await updateProducto(id, { precioUnitario });
+    if (result.success) {
+      await fetchProductos();
+    }
+    return result;
+  };
+
+  const handleSaveElementoVenta = async (
+    id: number,
+    data: { precioUnitario: number; esVendible: boolean }
+  ) => {
+    return updateElemento(id, data);
+  };
+
   const handleCreateUnidad = async (data: {
     productoId: number;
     pesoInicial: number;
     observacionesIngreso: string | null;
     motivoId: number | null;
+    fechaElaboracion: string;
+    numeroLote: string | null;
   }) => {
     const result = await createUnidad(data);
     if (result.success) {
@@ -559,6 +604,10 @@ function App() {
           setVistaActual('indumentaria');
           setShowForm(false);
         }}
+        onOpenFacturacion={() => {
+          setVistaActual('facturacion');
+          setShowForm(false);
+        }}
         onLogout={() => {
           setShowForm(false);
           setShowAdmin(false);
@@ -656,6 +705,29 @@ function App() {
             return result.success && result.proveedor ? result.proveedor : null;
           }}
           onVolver={() => setVistaActual('inventario')}
+        />
+      ) : vistaActual === 'facturacion' ? (
+        <FacturacionView
+          clientes={clientes}
+          loadingClientes={loadingClientes}
+          errorClientes={errorClientes}
+          successClientes={successClientes}
+          onClearErrorClientes={() => setErrorClientes('')}
+          onCreateCliente={createCliente}
+          onUpdateCliente={updateCliente}
+          onDeleteCliente={deleteCliente}
+          empresa={empresa}
+          loadingEmpresa={loadingEmpresa}
+          errorEmpresa={errorEmpresa}
+          successEmpresa={successEmpresa}
+          onSaveEmpresa={saveEmpresa}
+          productos={productos}
+          elementos={elementos}
+          loadingPrecios={loadingAdmin || loadingElementos}
+          errorPrecios={errorAdmin || errorElementos}
+          successPrecios={successAdmin || successElementos}
+          onSaveProductoPrecio={handleSaveProductoPrecio}
+          onSaveElemento={handleSaveElementoVenta}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

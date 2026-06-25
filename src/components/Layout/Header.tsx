@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenDashboard?: () => void;  // ✨ NUEVO
   onOpenElementos?: () => void;
   onOpenIndumentaria?: () => void;
+  onOpenFacturacion?: () => void;
   onLogout: () => void;
   showForm: boolean;
 }
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDashboard,  // ✨ NUEVO
   onOpenElementos,
   onOpenIndumentaria,
+  onOpenFacturacion,
   onLogout,
   showForm,
 }) => {
@@ -119,6 +121,22 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
           
+          {onOpenFacturacion && canAccess('facturacion') && (
+            <button
+              className="btn-primary"
+              onClick={onOpenFacturacion}
+              style={{ background: '#d97706' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="9" y1="14" x2="15" y2="14" />
+                <line x1="9" y1="18" x2="15" y2="18" />
+              </svg>
+              Facturación
+            </button>
+          )}
+
           {isAdmin && onOpenAdmin && (
             <button 
               className="btn-primary" 

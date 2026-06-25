@@ -10,6 +10,7 @@ const MODULOS: { value: Modulo; label: string }[] = [
   { value: 'indumentaria', label: 'Indumentaria' },
   { value: 'dashboard', label: 'Dashboard' },
   { value: 'historial', label: 'Historial' },
+  { value: 'facturacion', label: 'Facturación' },
 ];
 
 interface UsuariosManagerProps {

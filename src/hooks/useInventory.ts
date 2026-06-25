@@ -46,6 +46,8 @@ export const useInventory = (apiFetch: any) => {
     pesoInicial: number;
     observacionesIngreso: string | null;
     motivoId: number | null;
+    fechaElaboracion?: string;
+    numeroLote?: string | null;
   }) => {
     setLoading(true);
     setError('');

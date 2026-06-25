@@ -11,6 +11,7 @@ export interface Producto {
   seVendePorUnidad: boolean;
   tipoQueso: TipoQueso;
   precioPorKilo?: number | null;
+  precioUnitario?: number | null;   // ← Precio de venta por unidad (facturación)
   activo?: boolean;          // ← Para soft delete
 }
 
@@ -38,11 +39,13 @@ export interface Unidad {
   createdAt: string;
   deletedAt?: string | null;
   observacionesIngreso: string | null;
+  fechaElaboracion?: string | null;   // ← Identificación del queso (facturación)
+  numeroLote?: string | null;
   motivo: Motivo;
 }
 
 // Secciones del sistema sobre las que se pueden otorgar permisos a un usuario.
-export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial';
+export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial' | 'facturacion';
 
 export interface User {
   token: string;
@@ -89,6 +92,7 @@ export interface CreateProductoData {
   seVendePorUnidad: boolean;
   tipoQuesoId: number;
   precioPorKilo?: number | null;
+  precioUnitario?: number | null;
 }
 
 export interface UsuarioMini {
@@ -103,10 +107,43 @@ export interface Elemento {
   cantidadDisponible: number;
   cantidadTotal: number;
   activo: boolean;
+  precioUnitario?: number;          // ← Facturación
+  esVendible?: boolean;
   creadoPor?: User | null;
   modificadoPor?: User | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ← Facturación: cliente reutilizable
+export interface Cliente {
+  id: number;
+  nombre: string;
+  tipoDocumento: 'DNI' | 'CUIT';
+  numeroDocumento: string | null;
+  direccion: string | null;
+  codigoPostal: string | null;
+  localidad: string | null;
+  provincia: string | null;
+  telefono: string | null;
+  email: string | null;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ← Facturación: datos del emisor (la propia empresa)
+export interface Empresa {
+  id?: number;
+  razonSocial: string;
+  cuit: string | null;
+  direccion: string | null;
+  codigoPostal: string | null;
+  localidad: string | null;
+  provincia: string | null;
+  telefono: string | null;
+  email: string | null;
+  condicionIva: string | null;
 }
 
 export interface MovimientoElemento {

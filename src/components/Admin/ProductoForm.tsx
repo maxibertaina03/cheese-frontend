@@ -27,6 +27,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     seVendePorUnidad: false,
     tipoQuesoId: tiposQueso[0]?.id || 0,
     precioPorKilo: null,
+    precioUnitario: null,
   });
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
         seVendePorUnidad: producto.seVendePorUnidad,
         tipoQuesoId: producto.tipoQueso.id,
         precioPorKilo: producto.precioPorKilo ?? null,
+        precioUnitario: producto.precioUnitario ?? null,
       });
     }
   }, [producto]);
@@ -110,7 +112,7 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Precio (opcional)</label>
+            <label className="form-label">Precio por kilo (opcional)</label>
             <input
               type="number"
               className="form-input"
@@ -124,6 +126,24 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
               placeholder="0.00"
               step="0.01"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Precio por unidad (facturación)</label>
+            <input
+              type="number"
+              className="form-input"
+              value={formData.precioUnitario ?? ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  precioUnitario: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              placeholder="0.00"
+              step="0.01"
+            />
+            <div className="form-hint">Precio de venta de cada unidad en las notas de pedido</div>
           </div>
 
           <div className="form-group">
