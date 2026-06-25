@@ -203,6 +203,11 @@ export const apiService = {
     headers: {},
   }),
 
+  downloadStockLunesPdf: (apiFetch: any, fecha?: string) =>
+    apiFetch(`${API_URL}/api/reportes/export/stock-lunes/pdf${buildQueryString({ fecha })}`, {
+      headers: {},
+    }),
+
   // Elementos
   getElementos: (apiFetch: any) => 
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos`),

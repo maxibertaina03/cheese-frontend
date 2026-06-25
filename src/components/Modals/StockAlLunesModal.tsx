@@ -6,6 +6,8 @@ interface StockAlLunesModalProps {
   data: StockAlCorteResponse | null;
   loading: boolean;
   onClose: () => void;
+  onImprimir: () => void;
+  imprimiendo: boolean;
 }
 
 const formatearFecha = (iso: string): string => {
@@ -27,11 +29,21 @@ const formatearFechaHora = (iso: string): string => {
   });
 };
 
-const formatearPeso = (kg: number): string => {
-  return `${kg.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
+const formatearPeso = (gramos: number): string => {
+  // Los pesos se guardan en gramos. Mostramos en kg si es grande, si no en gramos.
+  if (gramos >= 1000) {
+    return `${(gramos / 1000).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
+  }
+  return `${gramos.toLocaleString('es-AR')} g`;
 };
 
-export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({ data, loading, onClose }) => {
+export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
+  data,
+  loading,
+  onClose,
+  onImprimir,
+  imprimiendo,
+}) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -161,6 +173,13 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({ data, load
         )}
 
         <div className="modal-actions">
+          <button
+            className="btn-export"
+            onClick={onImprimir}
+            disabled={loading || !data || imprimiendo}
+          >
+            {imprimiendo ? 'Generando PDF...' : 'Imprimir PDF'}
+          </button>
           <button className="btn-confirm" onClick={onClose}>Cerrar</button>
         </div>
       </div>

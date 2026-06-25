@@ -52,6 +52,8 @@ function App() {
   const [stockLunesData, setStockLunesData] = useState<StockAlCorteResponse | null>(null);
   const [loadingStockLunes, setLoadingStockLunes] = useState(false);
   const [showStockLunesModal, setShowStockLunesModal] = useState(false);
+  const [stockLunesFecha, setStockLunesFecha] = useState<string | null>(null);
+  const [imprimiendoStockLunes, setImprimiendoStockLunes] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
   const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria'>('inventario');
@@ -402,6 +404,7 @@ function App() {
       setStockLunesData(null);
 
       const fecha = getUltimoLunes().toISOString();
+      setStockLunesFecha(fecha);
       const response = await apiService.getStockAlCorte(apiFetch, fecha);
 
       if (!response.ok) {
@@ -418,6 +421,32 @@ function App() {
       setTimeout(() => setError(''), 5000);
     } finally {
       setLoadingStockLunes(false);
+    }
+  };
+
+  const handleImprimirStockLunes = async () => {
+    const fecha = stockLunesFecha ?? getUltimoLunes().toISOString();
+    const filename = `stock_al_lunes_${fecha.slice(0, 10)}.pdf`;
+
+    try {
+      setImprimiendoStockLunes(true);
+      const response = await apiService.downloadStockLunesPdf(apiFetch, fecha);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+      setSuccess('PDF del stock al lunes generado correctamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error al imprimir el stock al lunes:', error);
+      setError('No se pudo generar el PDF del stock al lunes.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setImprimiendoStockLunes(false);
     }
   };
 
@@ -655,6 +684,8 @@ function App() {
           data={stockLunesData}
           loading={loadingStockLunes}
           onClose={() => setShowStockLunesModal(false)}
+          onImprimir={handleImprimirStockLunes}
+          imprimiendo={imprimiendoStockLunes}
         />
       )}
 
