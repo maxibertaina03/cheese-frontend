@@ -1,7 +1,7 @@
 // src/App.tsx - Versión con Dashboard integrado
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData, CreateReciboData } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -29,6 +29,7 @@ import { useClientes } from './hooks/useClientes';
 import { useEmpresa } from './hooks/useEmpresa';
 import { useNotasPedido } from './hooks/useNotasPedido';
 import { useStockComercial } from './hooks/useStockComercial';
+import { useRecibos } from './hooks/useRecibos';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
 import { FacturacionView } from './components/Facturacion/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
@@ -217,6 +218,15 @@ function App() {
     ingresar: ingresarStockComercial,
   } = useStockComercial(apiFetch);
 
+  const {
+    recibos,
+    loading: loadingRecibos,
+    error: errorRecibos,
+    success: successRecibos,
+    fetchRecibos,
+    createRecibo,
+  } = useRecibos(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -239,16 +249,16 @@ function App() {
           fetchElementos(),
           fetchIndumentaria(),
           fetchProveedores(),
-          // Facturación (clientes, empresa, notas, stock comercial) solo con permiso
+          // Facturación (clientes, empresa, notas, stock comercial, recibos) solo con permiso
           ...(canAccess(user, 'facturacion')
-            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial()]
+            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchRecibos()]
             : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchRecibos]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -410,6 +420,34 @@ function App() {
     if (result.success && result.nota) {
       await Promise.all([fetchStockComercial(), fetchElementos()]);
       await handleImprimirNota(result.nota.id);
+    }
+    return { success: result.success };
+  };
+
+  // Facturación: imprimir/descargar el PDF de un recibo
+  const handleImprimirRecibo = async (id: number) => {
+    try {
+      const response = await apiService.downloadReciboPdf(apiFetch, id);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const recibo = recibos.find((r) => r.id === id);
+      downloadBlob(blob, `recibo_${recibo ? `${recibo.serie}-${recibo.numero}` : id}.pdf`);
+    } catch (error) {
+      console.error('Error al imprimir el recibo:', error);
+      setError('No se pudo generar el PDF del recibo.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  // Facturación: crear recibo, refrescar notas (saldos) y descargar el PDF
+  const handleCrearRecibo = async (data: CreateReciboData) => {
+    const result = await createRecibo(data);
+    if (result.success && result.recibo) {
+      await fetchNotas();
+      await handleImprimirRecibo(result.recibo.id);
     }
     return { success: result.success };
   };
@@ -790,6 +828,12 @@ function App() {
           errorStock={errorStock}
           successStock={successStock}
           onIngresarStock={ingresarStockComercial}
+          recibos={recibos}
+          loadingRecibos={loadingRecibos}
+          errorRecibos={errorRecibos}
+          successRecibos={successRecibos}
+          onCrearRecibo={handleCrearRecibo}
+          onImprimirRecibo={handleImprimirRecibo}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

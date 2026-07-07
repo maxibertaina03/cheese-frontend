@@ -199,6 +199,35 @@ export interface CreateNotaPedidoData {
   items: CreateNotaPedidoItem[];
 }
 
+// ← Facturación: recibo (cobro)
+export type MedioPago = 'efectivo' | 'transferencia';
+
+export interface ReciboAplicacion {
+  id: number;
+  notaPedidoId: number;
+  numeroNota: string | null;
+  monto: number;
+}
+
+export interface Recibo {
+  id: number;
+  serie: string;
+  numero: number;
+  fecha: string;
+  cliente: Cliente | null;
+  montoTotal: number;
+  medioPago: MedioPago;
+  observaciones: string | null;
+  aplicaciones?: ReciboAplicacion[];
+}
+
+export interface CreateReciboData {
+  clienteId: number;
+  medioPago: MedioPago;
+  observaciones?: string | null;
+  aplicaciones: { notaPedidoId: number; monto: number }[];
+}
+
 export interface MovimientoElemento {
   id: number;
   tipo: 'ingreso' | 'egreso';

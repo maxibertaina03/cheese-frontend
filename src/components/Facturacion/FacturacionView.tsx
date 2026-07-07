@@ -1,11 +1,22 @@
 // src/components/Facturacion/FacturacionView.tsx
 import React, { useState } from 'react';
-import { Cliente, Elemento, Empresa, NotaPedido, Producto, StockComercialItem, CreateNotaPedidoData } from '../../types';
+import {
+  Cliente,
+  Elemento,
+  Empresa,
+  NotaPedido,
+  Producto,
+  Recibo,
+  StockComercialItem,
+  CreateNotaPedidoData,
+  CreateReciboData,
+} from '../../types';
 import { ClientesManager } from './ClientesManager';
 import { EmpresaForm } from './EmpresaForm';
 import { PreciosManager } from './PreciosManager';
 import { NotasPedidoManager } from './NotasPedidoManager';
 import { StockComercialManager } from './StockComercialManager';
+import { RecibosManager } from './RecibosManager';
 
 interface Props {
   // Clientes
@@ -51,9 +62,17 @@ interface Props {
   errorStock: string;
   successStock: string;
   onIngresarStock: (productoId: number, cantidad: number, observaciones?: string | null) => Promise<{ success: boolean }>;
+
+  // Recibos
+  recibos: Recibo[];
+  loadingRecibos: boolean;
+  errorRecibos: string;
+  successRecibos: string;
+  onCrearRecibo: (data: CreateReciboData) => Promise<{ success: boolean }>;
+  onImprimirRecibo: (id: number) => void;
 }
 
-type Tab = 'notas' | 'stock' | 'clientes' | 'precios' | 'empresa';
+type Tab = 'notas' | 'recibos' | 'stock' | 'clientes' | 'precios' | 'empresa';
 
 export const FacturacionView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<Tab>('notas');
@@ -82,6 +101,12 @@ export const FacturacionView: React.FC<Props> = (props) => {
           onClick={() => setTab('notas')}
         >
           🧾 Notas de pedido
+        </button>
+        <button
+          className={`filter-btn ${tab === 'recibos' ? 'active' : ''}`}
+          onClick={() => setTab('recibos')}
+        >
+          💵 Recibos
         </button>
         <button
           className={`filter-btn ${tab === 'stock' ? 'active' : ''}`}
@@ -120,6 +145,17 @@ export const FacturacionView: React.FC<Props> = (props) => {
           success={props.successNotas}
           onCrearNota={props.onCrearNota}
           onImprimir={props.onImprimirNota}
+        />
+      ) : tab === 'recibos' ? (
+        <RecibosManager
+          recibos={props.recibos}
+          clientes={props.clientes}
+          notas={props.notas}
+          loading={props.loadingRecibos}
+          error={props.errorRecibos}
+          success={props.successRecibos}
+          onCrearRecibo={props.onCrearRecibo}
+          onImprimir={props.onImprimirRecibo}
         />
       ) : tab === 'stock' ? (
         <StockComercialManager

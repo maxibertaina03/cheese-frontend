@@ -307,6 +307,21 @@ export const apiService = {
       body: JSON.stringify(data),
     }),
 
+  // Facturación - Recibos
+  getRecibos: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/recibos`),
+
+  createRecibo: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/recibos`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  downloadReciboPdf: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/reportes/export/recibo/${id}/pdf`, {
+      headers: {},
+    }),
+
   // Proveedores
   getProveedores: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),
