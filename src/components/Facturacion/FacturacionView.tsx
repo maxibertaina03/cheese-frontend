@@ -21,6 +21,7 @@ import { NotasPedidoManager } from './NotasPedidoManager';
 import { StockComercialManager } from './StockComercialManager';
 import { RecibosManager } from './RecibosManager';
 import { NotasCreditoManager } from './NotasCreditoManager';
+import { ReporteFacturacion } from './ReporteFacturacion';
 
 interface Props {
   // Clientes
@@ -83,9 +84,14 @@ interface Props {
   onFetchNotaParaDevolver: (notaPedidoId: number) => Promise<NotaParaDevolver | null>;
   onCrearNotaCredito: (data: CreateNotaCreditoData) => Promise<{ success: boolean }>;
   onImprimirNotaCredito: (id: number) => void;
+
+  // Reporte
+  apiFetch: any;
+  onDownloadReportePdf: (desde: string, hasta: string) => void;
+  downloadingReporte: boolean;
 }
 
-type Tab = 'notas' | 'recibos' | 'creditos' | 'stock' | 'clientes' | 'precios' | 'empresa';
+type Tab = 'resumen' | 'notas' | 'recibos' | 'creditos' | 'stock' | 'clientes' | 'precios' | 'empresa';
 
 export const FacturacionView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<Tab>('notas');
@@ -109,6 +115,12 @@ export const FacturacionView: React.FC<Props> = (props) => {
           flexWrap: 'wrap',
         }}
       >
+        <button
+          className={`filter-btn ${tab === 'resumen' ? 'active' : ''}`}
+          onClick={() => setTab('resumen')}
+        >
+          📊 Resumen
+        </button>
         <button
           className={`filter-btn ${tab === 'notas' ? 'active' : ''}`}
           onClick={() => setTab('notas')}
@@ -153,7 +165,13 @@ export const FacturacionView: React.FC<Props> = (props) => {
         </button>
       </div>
 
-      {tab === 'notas' ? (
+      {tab === 'resumen' ? (
+        <ReporteFacturacion
+          apiFetch={props.apiFetch}
+          onDownloadPdf={props.onDownloadReportePdf}
+          downloading={props.downloadingReporte}
+        />
+      ) : tab === 'notas' ? (
         <NotasPedidoManager
           notas={props.notas}
           clientes={props.clientes}

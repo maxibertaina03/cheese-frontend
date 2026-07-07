@@ -1,7 +1,8 @@
 // src/components/Facturacion/RecibosManager.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Cliente, NotaPedido, Recibo, CreateReciboData } from '../../types';
 import { NuevoReciboModal } from './NuevoReciboModal';
+import { FiltroComprobantes, useFiltroFechaTexto } from './FiltroComprobantes';
 
 interface Props {
   recibos: Recibo[];
@@ -37,6 +38,18 @@ export const RecibosManager: React.FC<Props> = ({
   onImprimir,
 }) => {
   const [showNuevo, setShowNuevo] = useState(false);
+  const filtro = useFiltroFechaTexto();
+  const [medioFiltro, setMedioFiltro] = useState('todos');
+
+  const recibosFiltrados = useMemo(
+    () =>
+      recibos.filter(
+        (r) =>
+          (medioFiltro === 'todos' || r.medioPago === medioFiltro) &&
+          filtro.pasa(r.fecha, `${r.serie}-${r.numero}`, r.cliente?.nombre)
+      ),
+    [recibos, medioFiltro, filtro]
+  );
 
   return (
     <div>
@@ -60,6 +73,17 @@ export const RecibosManager: React.FC<Props> = ({
         </div>
       )}
 
+      <FiltroComprobantes {...filtro}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Medio</label>
+          <select className="form-select" value={medioFiltro} onChange={(e) => setMedioFiltro(e.target.value)}>
+            <option value="todos">Todos</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+          </select>
+        </div>
+      </FiltroComprobantes>
+
       <div style={{ overflowX: 'auto' }}>
         <table
           style={{
@@ -82,14 +106,14 @@ export const RecibosManager: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {recibos.length === 0 ? (
+            {recibosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
-                  Todavía no hay recibos
+                  No hay recibos para el filtro
                 </td>
               </tr>
             ) : (
-              recibos.map((r) => (
+              recibosFiltrados.map((r) => (
                 <tr key={r.id} style={{ borderTop: '1px solid #e5e7eb' }}>
                   <td style={{ ...td, fontWeight: 700, color: '#1f2937' }}>{r.serie}-{r.numero}</td>
                   <td style={td}>{new Date(r.fecha).toLocaleDateString('es-AR')}</td>

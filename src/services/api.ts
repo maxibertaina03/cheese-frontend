@@ -340,6 +340,15 @@ export const apiService = {
       headers: {},
     }),
 
+  // Facturación - Reporte de ventas
+  getReporteFacturacion: (apiFetch: any, desde?: string, hasta?: string) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/reporte${buildQueryString({ desde, hasta })}`),
+
+  downloadReporteFacturacionPdf: (apiFetch: any, desde?: string, hasta?: string) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/reportes/export/facturacion/pdf${buildQueryString({ desde, hasta })}`, {
+      headers: {},
+    }),
+
   // Proveedores
   getProveedores: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),

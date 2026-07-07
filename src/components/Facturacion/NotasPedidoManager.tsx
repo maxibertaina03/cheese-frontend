@@ -1,7 +1,8 @@
 // src/components/Facturacion/NotasPedidoManager.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Cliente, Elemento, NotaPedido, StockComercialItem, CreateNotaPedidoData } from '../../types';
 import { NuevaNotaPedidoModal } from './NuevaNotaPedidoModal';
+import { FiltroComprobantes, useFiltroFechaTexto } from './FiltroComprobantes';
 
 interface Props {
   notas: NotaPedido[];
@@ -46,6 +47,18 @@ export const NotasPedidoManager: React.FC<Props> = ({
   onImprimir,
 }) => {
   const [showNueva, setShowNueva] = useState(false);
+  const filtro = useFiltroFechaTexto();
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
+
+  const notasFiltradas = useMemo(
+    () =>
+      notas.filter(
+        (n) =>
+          (estadoFiltro === 'todos' || n.estado === estadoFiltro) &&
+          filtro.pasa(n.fecha, `${n.serie}-${n.numero}`, n.cliente?.nombre)
+      ),
+    [notas, estadoFiltro, filtro]
+  );
 
   return (
     <div>
@@ -75,6 +88,19 @@ export const NotasPedidoManager: React.FC<Props> = ({
         </div>
       )}
 
+      <FiltroComprobantes {...filtro}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Estado</label>
+          <select className="form-select" value={estadoFiltro} onChange={(e) => setEstadoFiltro(e.target.value)}>
+            <option value="todos">Todos</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="pagada_parcial">Pago parcial</option>
+            <option value="pagada_total">Pagada</option>
+            <option value="anulada">Anulada</option>
+          </select>
+        </div>
+      </FiltroComprobantes>
+
       <div style={{ overflowX: 'auto' }}>
         <table
           style={{
@@ -98,14 +124,14 @@ export const NotasPedidoManager: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {notas.length === 0 ? (
+            {notasFiltradas.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
-                  Todavía no hay notas de pedido
+                  No hay notas para el filtro
                 </td>
               </tr>
             ) : (
-              notas.map((n) => (
+              notasFiltradas.map((n) => (
                 <tr key={n.id} style={{ borderTop: '1px solid #e5e7eb' }}>
                   <td style={{ ...td, fontWeight: 700, color: '#1f2937' }}>
                     {n.serie}-{n.numero}

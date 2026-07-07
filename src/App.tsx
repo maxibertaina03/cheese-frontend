@@ -61,6 +61,7 @@ function App() {
   const [showStockLunesModal, setShowStockLunesModal] = useState(false);
   const [stockLunesFecha, setStockLunesFecha] = useState<string | null>(null);
   const [imprimiendoStockLunes, setImprimiendoStockLunes] = useState(false);
+  const [downloadingReporte, setDownloadingReporte] = useState(false);
   
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
   const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria' | 'facturacion'>('inventario');
@@ -491,6 +492,26 @@ function App() {
     }
   };
 
+  // Facturación: descargar el PDF del reporte de ventas
+  const handleDescargarReportePdf = async (desde: string, hasta: string) => {
+    try {
+      setDownloadingReporte(true);
+      const response = await apiService.downloadReporteFacturacionPdf(apiFetch, desde, hasta);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      downloadBlob(blob, `reporte_ventas_${desde}_${hasta}.pdf`);
+    } catch (error) {
+      console.error('Error al descargar el reporte:', error);
+      setError('No se pudo generar el PDF del reporte.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setDownloadingReporte(false);
+    }
+  };
+
   // Facturación: crear nota de crédito, refrescar stock/notas y descargar el PDF
   const handleCrearNotaCredito = async (data: CreateNotaCreditoData) => {
     const result = await createNotaCredito(data);
@@ -890,6 +911,9 @@ function App() {
           onFetchNotaParaDevolver={handleFetchNotaParaDevolver}
           onCrearNotaCredito={handleCrearNotaCredito}
           onImprimirNotaCredito={handleImprimirNotaCredito}
+          apiFetch={apiFetch}
+          onDownloadReportePdf={handleDescargarReportePdf}
+          downloadingReporte={downloadingReporte}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

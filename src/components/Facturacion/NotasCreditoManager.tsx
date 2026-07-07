@@ -1,7 +1,8 @@
 // src/components/Facturacion/NotasCreditoManager.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { NotaPedido, NotaCredito, NotaParaDevolver, CreateNotaCreditoData } from '../../types';
 import { NuevaNotaCreditoModal } from './NuevaNotaCreditoModal';
+import { FiltroComprobantes, useFiltroFechaTexto } from './FiltroComprobantes';
 
 interface Props {
   notasCredito: NotaCredito[];
@@ -37,6 +38,20 @@ export const NotasCreditoManager: React.FC<Props> = ({
   onImprimir,
 }) => {
   const [showNueva, setShowNueva] = useState(false);
+  const filtro = useFiltroFechaTexto();
+
+  const notasCreditoFiltradas = useMemo(
+    () =>
+      notasCredito.filter((nc) =>
+        filtro.pasa(
+          nc.fecha,
+          `${nc.serie}-${nc.numero}`,
+          nc.cliente?.nombre,
+          nc.notaPedido ? `${nc.notaPedido.serie}-${nc.notaPedido.numero}` : ''
+        )
+      ),
+    [notasCredito, filtro]
+  );
 
   return (
     <div>
@@ -60,6 +75,8 @@ export const NotasCreditoManager: React.FC<Props> = ({
         </div>
       )}
 
+      <FiltroComprobantes {...filtro} placeholder="N°, cliente o nota" />
+
       <div style={{ overflowX: 'auto' }}>
         <table
           style={{
@@ -82,14 +99,14 @@ export const NotasCreditoManager: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {notasCredito.length === 0 ? (
+            {notasCreditoFiltradas.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
-                  Todavía no hay notas de crédito
+                  No hay notas de crédito para el filtro
                 </td>
               </tr>
             ) : (
-              notasCredito.map((nc) => (
+              notasCreditoFiltradas.map((nc) => (
                 <tr key={nc.id} style={{ borderTop: '1px solid #e5e7eb' }}>
                   <td style={{ ...td, fontWeight: 700, color: '#1f2937' }}>{nc.serie}-{nc.numero}</td>
                   <td style={td}>{new Date(nc.fecha).toLocaleDateString('es-AR')}</td>

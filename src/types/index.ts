@@ -279,6 +279,22 @@ export interface CreateNotaCreditoData {
   items: { notaPedidoItemId: number; cantidad: number }[];
 }
 
+// ← Facturación: reporte de ventas
+export interface ReporteFacturacion {
+  periodo: { desde: string | null; hasta: string | null };
+  resumen: {
+    cantidadNotas: number;
+    totalFacturado: number;
+    cantidadRecibos: number;
+    totalCobrado: number;
+    cantidadNotasCredito: number;
+    totalCreditado: number;
+    saldoPendienteTotal: number;
+  };
+  ventasPorProducto: { descripcion: string; cantidad: number; monto: number }[];
+  cuentaCorriente: { clienteId: number; cliente: string; facturado: number; cobrado: number; saldo: number }[];
+}
+
 export interface MovimientoElemento {
   id: number;
   tipo: 'ingreso' | 'egreso';
