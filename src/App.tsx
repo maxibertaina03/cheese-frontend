@@ -1,7 +1,7 @@
 // src/App.tsx - Versión con Dashboard integrado
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData, CreateReciboData } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData, CreateReciboData, NotaParaDevolver, CreateNotaCreditoData } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -30,6 +30,7 @@ import { useEmpresa } from './hooks/useEmpresa';
 import { useNotasPedido } from './hooks/useNotasPedido';
 import { useStockComercial } from './hooks/useStockComercial';
 import { useRecibos } from './hooks/useRecibos';
+import { useNotasCredito } from './hooks/useNotasCredito';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
 import { FacturacionView } from './components/Facturacion/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
@@ -227,6 +228,15 @@ function App() {
     createRecibo,
   } = useRecibos(apiFetch);
 
+  const {
+    notasCredito,
+    loading: loadingNotasCredito,
+    error: errorNotasCredito,
+    success: successNotasCredito,
+    fetchNotasCredito,
+    createNotaCredito,
+  } = useNotasCredito(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -249,16 +259,16 @@ function App() {
           fetchElementos(),
           fetchIndumentaria(),
           fetchProveedores(),
-          // Facturación (clientes, empresa, notas, stock comercial, recibos) solo con permiso
+          // Facturación completa solo con permiso
           ...(canAccess(user, 'facturacion')
-            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchRecibos()]
+            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchRecibos(), fetchNotasCredito()]
             : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchRecibos]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchRecibos, fetchNotasCredito]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -448,6 +458,45 @@ function App() {
     if (result.success && result.recibo) {
       await fetchNotas();
       await handleImprimirRecibo(result.recibo.id);
+    }
+    return { success: result.success };
+  };
+
+  // Facturación: traer una nota de pedido con sus ítems para devolver
+  const handleFetchNotaParaDevolver = async (notaPedidoId: number): Promise<NotaParaDevolver | null> => {
+    try {
+      const response = await apiService.getNotaParaDevolver(apiFetch, notaPedidoId);
+      if (!response.ok) return null;
+      return (await response.json()) as NotaParaDevolver;
+    } catch (error) {
+      console.error('Error al traer la nota para devolver:', error);
+      return null;
+    }
+  };
+
+  const handleImprimirNotaCredito = async (id: number) => {
+    try {
+      const response = await apiService.downloadNotaCreditoPdf(apiFetch, id);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const nc = notasCredito.find((n) => n.id === id);
+      downloadBlob(blob, `nota_credito_${nc ? `${nc.serie}-${nc.numero}` : id}.pdf`);
+    } catch (error) {
+      console.error('Error al imprimir la nota de crédito:', error);
+      setError('No se pudo generar el PDF de la nota de crédito.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  // Facturación: crear nota de crédito, refrescar stock/notas y descargar el PDF
+  const handleCrearNotaCredito = async (data: CreateNotaCreditoData) => {
+    const result = await createNotaCredito(data);
+    if (result.success && result.nota) {
+      await Promise.all([fetchNotas(), fetchStockComercial(), fetchElementos()]);
+      await handleImprimirNotaCredito(result.nota.id);
     }
     return { success: result.success };
   };
@@ -834,6 +883,13 @@ function App() {
           successRecibos={successRecibos}
           onCrearRecibo={handleCrearRecibo}
           onImprimirRecibo={handleImprimirRecibo}
+          notasCredito={notasCredito}
+          loadingNotasCredito={loadingNotasCredito}
+          errorNotasCredito={errorNotasCredito}
+          successNotasCredito={successNotasCredito}
+          onFetchNotaParaDevolver={handleFetchNotaParaDevolver}
+          onCrearNotaCredito={handleCrearNotaCredito}
+          onImprimirNotaCredito={handleImprimirNotaCredito}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

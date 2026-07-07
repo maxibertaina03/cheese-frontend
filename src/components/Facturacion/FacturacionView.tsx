@@ -5,10 +5,13 @@ import {
   Elemento,
   Empresa,
   NotaPedido,
+  NotaCredito,
+  NotaParaDevolver,
   Producto,
   Recibo,
   StockComercialItem,
   CreateNotaPedidoData,
+  CreateNotaCreditoData,
   CreateReciboData,
 } from '../../types';
 import { ClientesManager } from './ClientesManager';
@@ -17,6 +20,7 @@ import { PreciosManager } from './PreciosManager';
 import { NotasPedidoManager } from './NotasPedidoManager';
 import { StockComercialManager } from './StockComercialManager';
 import { RecibosManager } from './RecibosManager';
+import { NotasCreditoManager } from './NotasCreditoManager';
 
 interface Props {
   // Clientes
@@ -70,9 +74,18 @@ interface Props {
   successRecibos: string;
   onCrearRecibo: (data: CreateReciboData) => Promise<{ success: boolean }>;
   onImprimirRecibo: (id: number) => void;
+
+  // Notas de crédito
+  notasCredito: NotaCredito[];
+  loadingNotasCredito: boolean;
+  errorNotasCredito: string;
+  successNotasCredito: string;
+  onFetchNotaParaDevolver: (notaPedidoId: number) => Promise<NotaParaDevolver | null>;
+  onCrearNotaCredito: (data: CreateNotaCreditoData) => Promise<{ success: boolean }>;
+  onImprimirNotaCredito: (id: number) => void;
 }
 
-type Tab = 'notas' | 'recibos' | 'stock' | 'clientes' | 'precios' | 'empresa';
+type Tab = 'notas' | 'recibos' | 'creditos' | 'stock' | 'clientes' | 'precios' | 'empresa';
 
 export const FacturacionView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<Tab>('notas');
@@ -107,6 +120,12 @@ export const FacturacionView: React.FC<Props> = (props) => {
           onClick={() => setTab('recibos')}
         >
           💵 Recibos
+        </button>
+        <button
+          className={`filter-btn ${tab === 'creditos' ? 'active' : ''}`}
+          onClick={() => setTab('creditos')}
+        >
+          ↩️ Notas de crédito
         </button>
         <button
           className={`filter-btn ${tab === 'stock' ? 'active' : ''}`}
@@ -156,6 +175,17 @@ export const FacturacionView: React.FC<Props> = (props) => {
           success={props.successRecibos}
           onCrearRecibo={props.onCrearRecibo}
           onImprimir={props.onImprimirRecibo}
+        />
+      ) : tab === 'creditos' ? (
+        <NotasCreditoManager
+          notasCredito={props.notasCredito}
+          notas={props.notas}
+          loading={props.loadingNotasCredito}
+          error={props.errorNotasCredito}
+          success={props.successNotasCredito}
+          onFetchNota={props.onFetchNotaParaDevolver}
+          onCrear={props.onCrearNotaCredito}
+          onImprimir={props.onImprimirNotaCredito}
         />
       ) : tab === 'stock' ? (
         <StockComercialManager

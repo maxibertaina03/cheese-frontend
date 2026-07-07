@@ -322,6 +322,24 @@ export const apiService = {
       headers: {},
     }),
 
+  // Facturación - Notas de crédito
+  getNotasCredito: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/notas-credito`),
+
+  getNotaParaDevolver: (apiFetch: any, notaPedidoId: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/notas-credito/nota-para-devolver/${notaPedidoId}`),
+
+  createNotaCredito: (apiFetch: any, data: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/notas-credito`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  downloadNotaCreditoPdf: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/reportes/export/nota-credito/${id}/pdf`, {
+      headers: {},
+    }),
+
   // Proveedores
   getProveedores: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),

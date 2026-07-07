@@ -228,6 +228,57 @@ export interface CreateReciboData {
   aplicaciones: { notaPedidoId: number; monto: number }[];
 }
 
+// ← Facturación: nota de crédito (devolución)
+export interface NotaCreditoItem {
+  id: number;
+  tipoItem: 'queso' | 'elemento';
+  descripcion: string;
+  plu: string | null;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+export interface NotaCredito {
+  id: number;
+  serie: string;
+  numero: number;
+  fecha: string;
+  notaPedido: NotaPedido | null;
+  cliente: Cliente | null;
+  montoTotal: number;
+  motivo: string | null;
+  items?: NotaCreditoItem[];
+}
+
+// Nota de pedido "para devolver": ítems con lo disponible a devolver
+export interface ItemParaDevolver {
+  notaPedidoItemId: number;
+  tipoItem: 'queso' | 'elemento';
+  descripcion: string;
+  plu: string | null;
+  cantidad: number;
+  cantidadDevuelta: number;
+  disponible: number;
+  precioUnitario: number;
+}
+
+export interface NotaParaDevolver {
+  id: number;
+  serie: string;
+  numero: number;
+  cliente: Cliente | null;
+  estado: EstadoNotaPedido;
+  total: number;
+  items: ItemParaDevolver[];
+}
+
+export interface CreateNotaCreditoData {
+  notaPedidoId: number;
+  motivo?: string | null;
+  items: { notaPedidoItemId: number; cantidad: number }[];
+}
+
 export interface MovimientoElemento {
   id: number;
   tipo: 'ingreso' | 'egreso';
