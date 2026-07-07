@@ -64,7 +64,8 @@ export interface StockLunesProducto {
   producto: string;
   plu: string;
   tipoQueso: string | null;
-  cantidad: number;
+  cantidadFisico: number;    // hormas físicas (pistola)
+  cantidadComercial: number; // stock de venta (facturación)
 }
 
 // Movimiento (corte o baja) ocurrido desde la fecha de corte hasta ahora
@@ -81,7 +82,8 @@ export interface MovimientoDesdeLunes {
 
 export interface StockAlCorteResponse {
   fechaCorte: string;
-  totalUnidades: number;
+  totalFisico: number;
+  totalComercial: number;
   productos: StockLunesProducto[];
   movimientos: MovimientoDesdeLunes[];
 }

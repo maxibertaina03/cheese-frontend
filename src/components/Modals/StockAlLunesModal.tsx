@@ -70,42 +70,59 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
               Lo que había en stock el <strong>{formatearFecha(data.fechaCorte)}</strong>
             </p>
 
-            {/* Sección 1: stock al lunes, por producto */}
+            {/* Sección 1: stock al lunes, por producto (físico + comercial) */}
             {data.productos.length === 0 ? (
               <div className="empty-state">
                 <p>No había quesos en stock en esa fecha.</p>
               </div>
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0.5rem 0' }}>
-                {data.productos.map((item) => (
-                  <li
-                    key={item.productoId}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '0.6rem 0.25rem',
-                      borderBottom: '1px solid var(--border-color, #eee)',
-                    }}
-                  >
-                    <span>
-                      {item.producto}
-                      {item.tipoQueso && (
-                        <span style={{ color: 'var(--text-secondary, #888)', fontSize: '0.85rem' }}>
-                          {'  '}· {item.tipoQueso}
-                        </span>
-                      )}
-                    </span>
-                    <strong style={{ fontSize: '1.05rem', whiteSpace: 'nowrap' }}>{item.cantidad}</strong>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.35rem 0.25rem',
+                    fontSize: '0.7rem',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-secondary, #888)',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>Producto</span>
+                  <span style={{ width: 70, textAlign: 'right' }}>Físico</span>
+                  <span style={{ width: 90, textAlign: 'right' }}>Comercial</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {data.productos.map((item) => (
+                    <li
+                      key={item.productoId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0.55rem 0.25rem',
+                        borderBottom: '1px solid var(--border-color, #eee)',
+                      }}
+                    >
+                      <span style={{ flex: 1 }}>
+                        {item.producto}
+                        {item.tipoQueso && (
+                          <span style={{ color: 'var(--text-secondary, #888)', fontSize: '0.85rem' }}>
+                            {'  '}· {item.tipoQueso}
+                          </span>
+                        )}
+                      </span>
+                      <strong style={{ width: 70, textAlign: 'right' }}>{item.cantidadFisico}</strong>
+                      <strong style={{ width: 90, textAlign: 'right', color: '#d97706' }}>
+                        {item.cantidadComercial}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
 
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
                 paddingTop: '0.75rem',
                 marginTop: '0.25rem',
@@ -113,9 +130,13 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
                 fontWeight: 600,
               }}
             >
-              <span>Total de quesos ese lunes</span>
-              <span>{data.totalUnidades}</span>
+              <span style={{ flex: 1 }}>Totales</span>
+              <span style={{ width: 70, textAlign: 'right' }}>{data.totalFisico}</span>
+              <span style={{ width: 90, textAlign: 'right', color: '#d97706' }}>{data.totalComercial}</span>
             </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #999)', margin: '0.35rem 0.25rem 0' }}>
+              Físico = hormas (pistola) · Comercial = stock de venta (facturación)
+            </p>
 
             {/* Sección 2: lo que salió o se cortó desde el lunes */}
             <h4 style={{ margin: '1.5rem 0 0.5rem' }}>Lo que salió o se cortó desde entonces</h4>
