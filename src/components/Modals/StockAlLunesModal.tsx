@@ -146,11 +146,6 @@ export const StockAlLunesModal: React.FC<StockAlLunesModalProps> = ({
                     <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #555)' }}>
                       {mov.tipo === 'baja' ? (
                         <span>Dado de baja</span>
-                      ) : mov.tipo === 'venta' ? (
-                        <span>
-                          Vendido (nota de pedido)
-                          {mov.peso != null ? ` · ${formatearPeso(mov.peso)}` : ''}
-                        </span>
                       ) : (
                         <span>
                           Se cortó {mov.peso != null ? formatearPeso(mov.peso) : ''}

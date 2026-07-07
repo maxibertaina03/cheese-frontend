@@ -1,12 +1,12 @@
 // src/components/Facturacion/NotasPedidoManager.tsx
 import React, { useState } from 'react';
-import { Cliente, Elemento, NotaPedido, Unidad, CreateNotaPedidoData } from '../../types';
+import { Cliente, Elemento, NotaPedido, StockComercialItem, CreateNotaPedidoData } from '../../types';
 import { NuevaNotaPedidoModal } from './NuevaNotaPedidoModal';
 
 interface Props {
   notas: NotaPedido[];
   clientes: Cliente[];
-  unidades: Unidad[];
+  stockComercial: StockComercialItem[];
   elementos: Elemento[];
   loading: boolean;
   error: string;
@@ -37,7 +37,7 @@ const td: React.CSSProperties = { padding: '0.7rem 1rem' };
 export const NotasPedidoManager: React.FC<Props> = ({
   notas,
   clientes,
-  unidades,
+  stockComercial,
   elementos,
   loading,
   error,
@@ -130,7 +130,7 @@ export const NotasPedidoManager: React.FC<Props> = ({
       {showNueva && (
         <NuevaNotaPedidoModal
           clientes={clientes}
-          unidades={unidades}
+          stockComercial={stockComercial}
           elementos={elementos}
           loading={loading}
           error={error}

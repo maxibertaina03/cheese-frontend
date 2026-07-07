@@ -28,6 +28,7 @@ import { useProveedores } from './hooks/useProveedores';
 import { useClientes } from './hooks/useClientes';
 import { useEmpresa } from './hooks/useEmpresa';
 import { useNotasPedido } from './hooks/useNotasPedido';
+import { useStockComercial } from './hooks/useStockComercial';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
 import { FacturacionView } from './components/Facturacion/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
@@ -207,6 +208,15 @@ function App() {
     createNota,
   } = useNotasPedido(apiFetch);
 
+  const {
+    stock: stockComercial,
+    loading: loadingStock,
+    error: errorStock,
+    success: successStock,
+    fetchStock: fetchStockComercial,
+    ingresar: ingresarStockComercial,
+  } = useStockComercial(apiFetch);
+
   const fetchTiposQueso = useCallback(async () => {
     try {
       const response = await apiFetch(`${process.env.REACT_APP_API_URL}/api/tipos-queso`);
@@ -229,14 +239,16 @@ function App() {
           fetchElementos(),
           fetchIndumentaria(),
           fetchProveedores(),
-          // Clientes, empresa y notas solo si el usuario tiene acceso a facturación
-          ...(canAccess(user, 'facturacion') ? [fetchClientes(), fetchEmpresa(), fetchNotas()] : []),
+          // Facturación (clientes, empresa, notas, stock comercial) solo con permiso
+          ...(canAccess(user, 'facturacion')
+            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial()]
+            : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -361,9 +373,8 @@ function App() {
   const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
     const result = await updateProducto(id, { precioUnitario });
     if (result.success) {
-      // Refrescar también las unidades: el precio viaja dentro de unidad.producto y
-      // hay que actualizarlo para que el selector de la nota de pedido lo vea.
-      await Promise.all([fetchProductos(), fetchUnidades()]);
+      // Refrescar productos y stock comercial (el precio se muestra ahí y en la nota).
+      await Promise.all([fetchProductos(), fetchStockComercial()]);
     }
     return result;
   };
@@ -397,7 +408,7 @@ function App() {
   const handleCrearNotaPedido = async (data: CreateNotaPedidoData) => {
     const result = await createNota(data);
     if (result.success && result.nota) {
-      await Promise.all([fetchUnidades(), fetchElementos()]);
+      await Promise.all([fetchStockComercial(), fetchElementos()]);
       await handleImprimirNota(result.nota.id);
     }
     return { success: result.success };
@@ -769,12 +780,16 @@ function App() {
           onSaveProductoPrecio={handleSaveProductoPrecio}
           onSaveElemento={handleSaveElementoVenta}
           notas={notas}
-          unidades={unidades}
           loadingNotas={loadingNotas}
           errorNotas={errorNotas}
           successNotas={successNotas}
           onCrearNota={handleCrearNotaPedido}
           onImprimirNota={handleImprimirNota}
+          stockComercial={stockComercial}
+          loadingStock={loadingStock}
+          errorStock={errorStock}
+          successStock={successStock}
+          onIngresarStock={ingresarStockComercial}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

@@ -69,7 +69,7 @@ export interface StockLunesProducto {
 
 // Movimiento (corte o baja) ocurrido desde la fecha de corte hasta ahora
 export interface MovimientoDesdeLunes {
-  tipo: 'corte' | 'baja' | 'venta';
+  tipo: 'corte' | 'baja';
   unidadId: number;
   producto: string;
   tipoQueso: string | null;
@@ -155,11 +155,19 @@ export interface NotaPedidoItem {
   tipoItem: 'queso' | 'elemento';
   descripcion: string;
   plu: string | null;
-  pesoGramos: number | null;
-  fechaElaboracion: string | null;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
+}
+
+// Stock comercial (facturación) por producto
+export interface StockComercialItem {
+  productoId: number;
+  producto: string;
+  plu: string;
+  tipoQueso: string | null;
+  precioUnitario: number | null;
+  cantidadDisponible: number;
 }
 
 export interface NotaPedido {
@@ -178,9 +186,9 @@ export interface NotaPedido {
 // Payload para crear una nota de pedido
 export interface CreateNotaPedidoItem {
   tipoItem: 'queso' | 'elemento';
-  unidadId?: number;
+  productoId?: number;
   elementoId?: number;
-  cantidad?: number;
+  cantidad: number;
 }
 
 export interface CreateNotaPedidoData {

@@ -297,6 +297,16 @@ export const apiService = {
       headers: {},
     }),
 
+  // Facturación - Stock comercial (por cantidad)
+  getStockComercial: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial`),
+
+  ingresarStockComercial: (apiFetch: any, productoId: number, data: { cantidad: number; observaciones?: string | null }) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial/${productoId}/ingreso`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Proveedores
   getProveedores: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),

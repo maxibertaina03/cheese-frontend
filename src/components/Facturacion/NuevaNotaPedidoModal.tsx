@@ -1,10 +1,10 @@
 // src/components/Facturacion/NuevaNotaPedidoModal.tsx
 import React, { useMemo, useState } from 'react';
-import { Cliente, Elemento, Unidad, CreateNotaPedidoData } from '../../types';
+import { Cliente, Elemento, StockComercialItem, CreateNotaPedidoData } from '../../types';
 
 interface Props {
   clientes: Cliente[];
-  unidades: Unidad[];
+  stockComercial: StockComercialItem[];
   elementos: Elemento[];
   loading: boolean;
   error: string;
@@ -16,7 +16,7 @@ const money = (n: number) => `$ ${n.toLocaleString('es-AR', { minimumFractionDig
 
 export const NuevaNotaPedidoModal: React.FC<Props> = ({
   clientes,
-  unidades,
+  stockComercial,
   elementos,
   loading,
   error,
@@ -25,41 +25,14 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
 }) => {
   const [clienteId, setClienteId] = useState<number | ''>('');
   const [observaciones, setObservaciones] = useState('');
-  const [quesosSel, setQuesosSel] = useState<Record<number, boolean>>({});
+  const [quesosQty, setQuesosQty] = useState<Record<number, number>>({});
   const [elementosQty, setElementosQty] = useState<Record<number, number>>({});
-  const [expandido, setExpandido] = useState<Record<number, boolean>>({});
 
-  // Quesos vendibles: enteros, activos y con precio por unidad cargado.
+  // Quesos vendibles: con stock comercial > 0 y precio cargado.
   const quesosDisponibles = useMemo(
-    () =>
-      unidades.filter(
-        (u) =>
-          u.activa &&
-          Number(u.pesoActual) === Number(u.pesoInicial) &&
-          u.producto?.precioUnitario != null
-      ),
-    [unidades]
+    () => stockComercial.filter((s) => s.cantidadDisponible > 0 && s.precioUnitario != null),
+    [stockComercial]
   );
-
-  // Agrupados por producto para mostrar la cantidad y desglosar al tocar.
-  const gruposQuesos = useMemo(() => {
-    const map = new Map<
-      number,
-      { productoId: number; nombre: string; precio: number; unidades: Unidad[] }
-    >();
-    quesosDisponibles.forEach((u) => {
-      const pid = u.producto!.id;
-      const grupo = map.get(pid) || {
-        productoId: pid,
-        nombre: u.producto!.nombre,
-        precio: Number(u.producto!.precioUnitario ?? 0),
-        unidades: [],
-      };
-      grupo.unidades.push(u);
-      map.set(pid, grupo);
-    });
-    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  }, [quesosDisponibles]);
 
   const elementosVendibles = useMemo(
     () => elementos.filter((e) => e.esVendible && (e.precioUnitario ?? 0) > 0),
@@ -68,38 +41,46 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
 
   const total = useMemo(() => {
     let t = 0;
-    quesosDisponibles.forEach((u) => {
-      if (quesosSel[u.id]) t += Number(u.producto?.precioUnitario ?? 0);
+    quesosDisponibles.forEach((s) => {
+      const qty = quesosQty[s.productoId] || 0;
+      if (qty > 0) t += Number(s.precioUnitario ?? 0) * qty;
     });
     elementosVendibles.forEach((e) => {
       const qty = elementosQty[e.id] || 0;
       if (qty > 0) t += Number(e.precioUnitario ?? 0) * qty;
     });
     return t;
-  }, [quesosDisponibles, quesosSel, elementosVendibles, elementosQty]);
+  }, [quesosDisponibles, quesosQty, elementosVendibles, elementosQty]);
 
   const cantidadItems =
-    Object.values(quesosSel).filter(Boolean).length +
+    Object.values(quesosQty).filter((q) => q > 0).length +
     Object.values(elementosQty).filter((q) => q > 0).length;
 
   const handleConfirm = async () => {
     if (!clienteId || cantidadItems === 0) return;
-
     const items: CreateNotaPedidoData['items'] = [];
-    quesosDisponibles.forEach((u) => {
-      if (quesosSel[u.id]) items.push({ tipoItem: 'queso', unidadId: u.id });
+    quesosDisponibles.forEach((s) => {
+      const qty = quesosQty[s.productoId] || 0;
+      if (qty > 0) items.push({ tipoItem: 'queso', productoId: s.productoId, cantidad: qty });
     });
     elementosVendibles.forEach((e) => {
       const qty = elementosQty[e.id] || 0;
       if (qty > 0) items.push({ tipoItem: 'elemento', elementoId: e.id, cantidad: qty });
     });
-
     const result = await onConfirm({
       clienteId: Number(clienteId),
       observaciones: observaciones.trim() || null,
       items,
     });
     if (result.success) onClose();
+  };
+
+  const filaStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    padding: '0.55rem 0.75rem',
+    borderBottom: '1px solid #f0f0f0',
   };
 
   return (
@@ -139,94 +120,52 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
           </select>
         </div>
 
-        {/* Quesos: agrupados por producto, se desglosan al tocar */}
-        <h4 style={{ margin: '1rem 0 0.5rem' }}>Quesos disponibles</h4>
-        {gruposQuesos.length === 0 ? (
+        {/* Quesos: por cantidad desde el stock comercial */}
+        <h4 style={{ margin: '1rem 0 0.5rem' }}>Quesos</h4>
+        {quesosDisponibles.length === 0 ? (
           <p style={{ color: '#888', fontSize: '0.9rem' }}>
-            No hay quesos enteros con precio cargado. Cargá el precio en la pestaña Precios.
+            No hay quesos con stock de venta y precio. Cargá stock en la pestaña "Stock" y el precio en "Precios".
           </p>
         ) : (
-          <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
-            {gruposQuesos.map((g) => {
-              const seleccionadosEnGrupo = g.unidades.filter((u) => quesosSel[u.id]).length;
-              const abierto = !!expandido[g.productoId];
-              return (
-                <div key={g.productoId} style={{ borderBottom: '1px solid #eee' }}>
-                  {/* Cabecera del producto (clic para desglosar) */}
-                  <div
-                    onClick={() => setExpandido({ ...expandido, [g.productoId]: !abierto })}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      padding: '0.6rem 0.75rem',
-                      cursor: 'pointer',
-                      background: '#f9fafb',
-                      userSelect: 'none',
-                    }}
-                  >
-                    <span style={{ width: 14, color: '#6b7280' }}>{abierto ? '▾' : '▸'}</span>
-                    <span style={{ flex: 1 }}>
-                      <strong>{g.nombre}</strong>{' '}
-                      <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                        ({g.unidades.length} disponible{g.unidades.length === 1 ? '' : 's'}
-                        {seleccionadosEnGrupo > 0 ? ` · ${seleccionadosEnGrupo} elegido${seleccionadosEnGrupo === 1 ? '' : 's'}` : ''})
-                      </span>
-                    </span>
-                    <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{money(g.precio)} c/u</span>
-                  </div>
-
-                  {/* Desglose unidad por unidad */}
-                  {abierto &&
-                    g.unidades.map((u) => (
-                      <label
-                        key={u.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.6rem',
-                          padding: '0.45rem 0.75rem 0.45rem 2rem',
-                          borderTop: '1px solid #f3f4f6',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!quesosSel[u.id]}
-                          onChange={(e) => setQuesosSel({ ...quesosSel, [u.id]: e.target.checked })}
-                        />
-                        <span style={{ flex: 1, fontSize: '0.9rem' }}>
-                          #{u.id} · {u.pesoInicial}g
-                          {u.fechaElaboracion ? ` · elab ${u.fechaElaboracion}` : ''}
-                          {u.numeroLote ? ` · lote ${u.numeroLote}` : ''}
-                        </span>
-                      </label>
-                    ))}
-                </div>
-              );
-            })}
+          <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
+            {quesosDisponibles.map((s) => (
+              <div key={s.productoId} style={filaStyle}>
+                <span style={{ flex: 1 }}>
+                  <strong>{s.producto}</strong>{' '}
+                  <span style={{ color: '#888', fontSize: '0.85rem' }}>
+                    PLU {s.plu} · {money(Number(s.precioUnitario ?? 0))} c/u · disp. {s.cantidadDisponible}
+                  </span>
+                </span>
+                <input
+                  type="number"
+                  className="form-input"
+                  style={{ maxWidth: 90 }}
+                  min={0}
+                  max={s.cantidadDisponible}
+                  value={quesosQty[s.productoId] ?? ''}
+                  placeholder="0"
+                  onChange={(e) =>
+                    setQuesosQty({
+                      ...quesosQty,
+                      [s.productoId]: e.target.value
+                        ? Math.min(s.cantidadDisponible, Math.max(0, Number(e.target.value)))
+                        : 0,
+                    })
+                  }
+                />
+              </div>
+            ))}
           </div>
         )}
 
         {/* Elementos */}
-        <h4 style={{ margin: '1.25rem 0 0.5rem' }}>Elementos vendibles</h4>
+        <h4 style={{ margin: '1.25rem 0 0.5rem' }}>Elementos</h4>
         {elementosVendibles.length === 0 ? (
-          <p style={{ color: '#888', fontSize: '0.9rem' }}>
-            No hay elementos marcados como vendibles con precio.
-          </p>
+          <p style={{ color: '#888', fontSize: '0.9rem' }}>No hay elementos vendibles con precio.</p>
         ) : (
           <div style={{ border: '1px solid #eee', borderRadius: 8 }}>
             {elementosVendibles.map((e) => (
-              <div
-                key={e.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  padding: '0.5rem 0.75rem',
-                  borderBottom: '1px solid #f0f0f0',
-                }}
-              >
+              <div key={e.id} style={filaStyle}>
                 <span style={{ flex: 1 }}>
                   <strong>{e.nombre}</strong>{' '}
                   <span style={{ color: '#888', fontSize: '0.85rem' }}>
@@ -279,9 +218,7 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="btn-cancel" onClick={onClose}>
-            Cancelar
-          </button>
+          <button type="button" className="btn-cancel" onClick={onClose}>Cancelar</button>
           <button
             type="button"
             className="btn-confirm"
