@@ -144,14 +144,15 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
                   max={s.cantidadDisponible}
                   value={quesosQty[s.productoId] ?? ''}
                   placeholder="0"
-                  onChange={(e) =>
-                    setQuesosQty({
-                      ...quesosQty,
-                      [s.productoId]: e.target.value
-                        ? Math.min(s.cantidadDisponible, Math.max(0, Number(e.target.value)))
-                        : 0,
-                    })
-                  }
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setQuesosQty((prev) => {
+                      const next = { ...prev };
+                      if (raw === '') delete next[s.productoId];
+                      else next[s.productoId] = Math.min(s.cantidadDisponible, Math.max(0, Number(raw)));
+                      return next;
+                    });
+                  }}
                 />
               </div>
             ))}
@@ -180,12 +181,15 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
                   max={Number(e.cantidadDisponible)}
                   value={elementosQty[e.id] ?? ''}
                   placeholder="0"
-                  onChange={(ev) =>
-                    setElementosQty({
-                      ...elementosQty,
-                      [e.id]: ev.target.value ? Math.max(0, Number(ev.target.value)) : 0,
-                    })
-                  }
+                  onChange={(ev) => {
+                    const raw = ev.target.value;
+                    setElementosQty((prev) => {
+                      const next = { ...prev };
+                      if (raw === '') delete next[e.id];
+                      else next[e.id] = Math.max(0, Number(raw));
+                      return next;
+                    });
+                  }}
                 />
               </div>
             ))}
