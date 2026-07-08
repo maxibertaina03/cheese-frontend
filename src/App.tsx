@@ -915,6 +915,7 @@ function App() {
           apiFetch={apiFetch}
           onDownloadReportePdf={handleDescargarReportePdf}
           downloadingReporte={downloadingReporte}
+          esAdmin={user?.rol === 'admin'}
         />
       ) : (
         // ✨ NUEVO: Vista del Dashboard

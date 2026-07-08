@@ -92,6 +92,7 @@ interface Props {
   apiFetch: any;
   onDownloadReportePdf: (desde: string, hasta: string) => void;
   downloadingReporte: boolean;
+  esAdmin: boolean;
 }
 
 type Tab = 'resumen' | 'notas' | 'recibos' | 'creditos' | 'stock' | 'clientes' | 'precios' | 'empresa';
@@ -173,6 +174,7 @@ export const FacturacionView: React.FC<Props> = (props) => {
           apiFetch={props.apiFetch}
           onDownloadPdf={props.onDownloadReportePdf}
           downloading={props.downloadingReporte}
+          esAdmin={props.esAdmin}
         />
       ) : tab === 'notas' ? (
         <NotasPedidoManager

@@ -349,6 +349,13 @@ export const apiService = {
       headers: {},
     }),
 
+  // Facturación - Mantenimiento (admin): borra todas las transacciones de facturación
+  limpiarFacturacion: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/mantenimiento/limpiar-transacciones`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
   // Proveedores
   getProveedores: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/proveedores`),

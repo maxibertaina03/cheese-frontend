@@ -7,6 +7,7 @@ interface Props {
   apiFetch: any;
   onDownloadPdf: (desde: string, hasta: string) => void;
   downloading: boolean;
+  esAdmin: boolean;
 }
 
 const money = (n: number | string) =>
@@ -42,11 +43,34 @@ const Card: React.FC<{ label: string; value: string; color?: string }> = ({ labe
   </div>
 );
 
-export const ReporteFacturacion: React.FC<Props> = ({ apiFetch, onDownloadPdf, downloading }) => {
+export const ReporteFacturacion: React.FC<Props> = ({ apiFetch, onDownloadPdf, downloading, esAdmin }) => {
   const [desde, setDesde] = useState(primerDiaMes());
   const [hasta, setHasta] = useState(hoy());
   const [data, setData] = useState<Reporte | null>(null);
   const [loading, setLoading] = useState(false);
+  const [limpiando, setLimpiando] = useState(false);
+
+  const limpiarTransacciones = async () => {
+    const ok = window.confirm(
+      'Esto BORRA todas las transacciones de facturación (notas de pedido, recibos, notas de crédito y stock comercial). ' +
+        'Se conservan clientes, proveedores, empresa y productos. ¿Continuar?'
+    );
+    if (!ok) return;
+    setLimpiando(true);
+    try {
+      const response = await apiService.limpiarFacturacion(apiFetch);
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `HTTP ${response.status}`);
+      }
+      window.alert('Transacciones de facturación eliminadas. Recargá la página para ver todo limpio.');
+      await cargar();
+    } catch (e: any) {
+      window.alert('No se pudo limpiar: ' + (e?.message || 'error'));
+    } finally {
+      setLimpiando(false);
+    }
+  };
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -165,6 +189,33 @@ export const ReporteFacturacion: React.FC<Props> = ({ apiFetch, onDownloadPdf, d
             </table>
           </div>
         </>
+      )}
+
+      {esAdmin && (
+        <div
+          style={{
+            marginTop: '2.5rem',
+            padding: '1rem',
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            borderRadius: 10,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: '#b91c1c', marginBottom: '0.25rem' }}>Zona de peligro</div>
+          <p style={{ color: '#7f1d1d', fontSize: '0.85rem', margin: '0 0 0.6rem' }}>
+            Borra todas las transacciones de facturación (notas de pedido, recibos, notas de crédito y stock comercial).
+            Conserva clientes, proveedores, empresa, productos e inventario físico. Útil para limpiar datos de prueba.
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ background: '#dc2626' }}
+            onClick={limpiarTransacciones}
+            disabled={limpiando}
+          >
+            {limpiando ? 'Borrando...' : '🧹 Borrar transacciones de facturación'}
+          </button>
+        </div>
       )}
     </div>
   );
