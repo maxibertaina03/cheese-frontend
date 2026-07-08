@@ -1,14 +1,17 @@
 // src/components/Facturacion/StockComercialManager.tsx
 import React, { useState } from 'react';
-import { StockComercialItem } from '../../types';
+import { StockComercialItem, Proveedor, CargaStockComercial } from '../../types';
 
 interface Props {
   stock: StockComercialItem[];
+  proveedores: Proveedor[];
   loading: boolean;
   error: string;
   success: string;
-  onIngresar: (productoId: number, cantidad: number, observaciones?: string | null) => Promise<{ success: boolean }>;
+  onIngresar: (productoId: number, data: CargaStockComercial) => Promise<{ success: boolean }>;
 }
+
+const hoy = () => new Date().toISOString().slice(0, 10);
 
 const th: React.CSSProperties = {
   padding: '0.75rem 1rem',
@@ -19,22 +22,40 @@ const th: React.CSSProperties = {
 };
 const td: React.CSSProperties = { padding: '0.7rem 1rem' };
 
-export const StockComercialManager: React.FC<Props> = ({ stock, loading, error, success, onIngresar }) => {
+export const StockComercialManager: React.FC<Props> = ({ stock, proveedores, loading, error, success, onIngresar }) => {
   const [cargando, setCargando] = useState<StockComercialItem | null>(null);
   const [cantidad, setCantidad] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  const [fecha, setFecha] = useState(hoy());
+  const [prefijo, setPrefijo] = useState('');
+  const [numero, setNumero] = useState('');
+  const [precioCompra, setPrecioCompra] = useState('');
+  const [proveedorId, setProveedorId] = useState<number | ''>('');
 
   const abrirCarga = (item: StockComercialItem) => {
     setCargando(item);
     setCantidad('');
     setObservaciones('');
+    setFecha(hoy());
+    setPrefijo('');
+    setNumero('');
+    setPrecioCompra('');
+    setProveedorId('');
   };
 
   const confirmar = async () => {
     if (!cargando) return;
     const n = Number(cantidad);
     if (!n || n <= 0) return;
-    const result = await onIngresar(cargando.productoId, n, observaciones.trim() || null);
+    const result = await onIngresar(cargando.productoId, {
+      cantidad: n,
+      observaciones: observaciones.trim() || null,
+      fechaComprobante: fecha || null,
+      comprobantePrefijo: prefijo.trim() || null,
+      comprobanteNumero: numero.trim() || null,
+      precioCompra: precioCompra ? Number(precioCompra) : null,
+      proveedorId: proveedorId ? Number(proveedorId) : null,
+    });
     if (result.success) setCargando(null);
   };
 
@@ -116,18 +137,67 @@ export const StockComercialManager: React.FC<Props> = ({ stock, loading, error, 
               <h3 className="modal-title">Cargar stock — {cargando.producto}</h3>
               <button className="btn-close" onClick={() => setCargando(null)}>✕</button>
             </div>
-            <div className="form-group">
-              <label className="form-label">Cantidad a cargar *</label>
-              <input
-                type="number"
-                className="form-input"
-                min={1}
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                placeholder="Ej: 10"
-                autoFocus
-              />
-              <div className="form-hint">Disponible actual: {cargando.cantidadDisponible}</div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">Cantidad a cargar *</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  min={1}
+                  value={cantidad}
+                  onChange={(e) => setCantidad(e.target.value)}
+                  placeholder="Ej: 10"
+                  autoFocus
+                />
+                <div className="form-hint">Disponible actual: {cargando.cantidadDisponible}</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Fecha de compra</label>
+                <input type="date" className="form-input" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Comprobante de compra</label>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <input
+                    className="form-input"
+                    style={{ maxWidth: 90 }}
+                    value={prefijo}
+                    onChange={(e) => setPrefijo(e.target.value)}
+                    placeholder="Prefijo"
+                  />
+                  <input
+                    className="form-input"
+                    value={numero}
+                    onChange={(e) => setNumero(e.target.value)}
+                    placeholder="N°"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Precio de compra (por unidad)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  step="0.01"
+                  min={0}
+                  value={precioCompra}
+                  onChange={(e) => setPrecioCompra(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Proveedor</label>
+                <select
+                  className="form-select"
+                  value={proveedorId}
+                  onChange={(e) => setProveedorId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">-- Sin especificar --</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Observaciones (opcional)</label>

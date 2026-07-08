@@ -172,6 +172,17 @@ export interface StockComercialItem {
   cantidadDisponible: number;
 }
 
+// Datos de la carga (compra) de stock comercial
+export interface CargaStockComercial {
+  cantidad: number;
+  observaciones?: string | null;
+  fechaComprobante?: string | null;
+  comprobantePrefijo?: string | null;
+  comprobanteNumero?: string | null;
+  precioCompra?: number | null;
+  proveedorId?: number | null;
+}
+
 export interface NotaPedido {
   id: number;
   serie: string;
@@ -209,6 +220,12 @@ export interface ReciboAplicacion {
   monto: number;
 }
 
+export interface ReciboPago {
+  id: number;
+  medio: MedioPago;
+  monto: number;
+}
+
 export interface Recibo {
   id: number;
   serie: string;
@@ -216,16 +233,17 @@ export interface Recibo {
   fecha: string;
   cliente: Cliente | null;
   montoTotal: number;
-  medioPago: MedioPago;
+  medioPago: MedioPago | 'mixto';
   observaciones: string | null;
   aplicaciones?: ReciboAplicacion[];
+  pagos?: ReciboPago[];
 }
 
 export interface CreateReciboData {
   clienteId: number;
-  medioPago: MedioPago;
   observaciones?: string | null;
   aplicaciones: { notaPedidoId: number; monto: number }[];
+  pagos: { medio: MedioPago; monto: number }[];
 }
 
 // ← Facturación: nota de crédito (devolución)

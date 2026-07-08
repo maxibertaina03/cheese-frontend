@@ -301,7 +301,7 @@ export const apiService = {
   getStockComercial: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial`),
 
-  ingresarStockComercial: (apiFetch: any, productoId: number, data: { cantidad: number; observaciones?: string | null }) =>
+  ingresarStockComercial: (apiFetch: any, productoId: number, data: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial/${productoId}/ingreso`, {
       method: 'POST',
       body: JSON.stringify(data),

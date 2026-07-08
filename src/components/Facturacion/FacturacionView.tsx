@@ -8,8 +8,10 @@ import {
   NotaCredito,
   NotaParaDevolver,
   Producto,
+  Proveedor,
   Recibo,
   StockComercialItem,
+  CargaStockComercial,
   CreateNotaPedidoData,
   CreateNotaCreditoData,
   CreateReciboData,
@@ -63,10 +65,11 @@ interface Props {
 
   // Stock comercial
   stockComercial: StockComercialItem[];
+  proveedores: Proveedor[];
   loadingStock: boolean;
   errorStock: string;
   successStock: string;
-  onIngresarStock: (productoId: number, cantidad: number, observaciones?: string | null) => Promise<{ success: boolean }>;
+  onIngresarStock: (productoId: number, data: CargaStockComercial) => Promise<{ success: boolean }>;
 
   // Recibos
   recibos: Recibo[];
@@ -208,6 +211,7 @@ export const FacturacionView: React.FC<Props> = (props) => {
       ) : tab === 'stock' ? (
         <StockComercialManager
           stock={props.stockComercial}
+          proveedores={props.proveedores}
           loading={props.loadingStock}
           error={props.errorStock}
           success={props.successStock}

@@ -894,6 +894,7 @@ function App() {
           onCrearNota={handleCrearNotaPedido}
           onImprimirNota={handleImprimirNota}
           stockComercial={stockComercial}
+          proveedores={proveedores}
           loadingStock={loadingStock}
           errorStock={errorStock}
           successStock={successStock}
