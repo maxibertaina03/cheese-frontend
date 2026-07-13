@@ -390,6 +390,16 @@ function App() {
     }
   };
 
+  // Admin: crear producto y refrescar también el stock de venta por cantidad,
+  // para que el producto nuevo aparezca ahí sin recargar la página.
+  const handleCreateProducto = async (data: Parameters<typeof createProducto>[0]) => {
+    const result = await createProducto(data);
+    if (result.success) {
+      await fetchStockComercial();
+    }
+    return result;
+  };
+
   // Facturación: guardar precio por unidad de un producto y refrescar el inventario
   const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
     const result = await updateProducto(id, { precioUnitario });
@@ -979,7 +989,7 @@ function App() {
           errorProductos={errorAdmin}
           successProductos={successAdmin}
           onClearErrorProductos={() => setErrorAdmin('')}
-          onCreateProducto={createProducto}
+          onCreateProducto={handleCreateProducto}
           onUpdateProducto={updateProducto}
           onDeleteProducto={deleteProducto}
           usuarios={usuarios}
