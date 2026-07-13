@@ -1,6 +1,7 @@
 // src/components/Facturacion/StockComercialManager.tsx
 import React, { useState } from 'react';
 import { StockComercialItem, Proveedor, CargaStockComercial } from '../../types';
+import { exportStockComercialPdfLocal } from '../../utils/pdfExport';
 
 interface Props {
   stock: StockComercialItem[];
@@ -31,6 +32,16 @@ export const StockComercialManager: React.FC<Props> = ({ stock, proveedores, loa
   const [numero, setNumero] = useState('');
   const [precioCompra, setPrecioCompra] = useState('');
   const [proveedorId, setProveedorId] = useState<number | ''>('');
+  const [exportando, setExportando] = useState(false);
+
+  const exportarPdf = () => {
+    setExportando(true);
+    try {
+      exportStockComercialPdfLocal(stock, `stock_facturacion_${hoy()}.pdf`);
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const abrirCarga = (item: StockComercialItem) => {
     setCargando(item);
@@ -61,11 +72,25 @@ export const StockComercialManager: React.FC<Props> = ({ stock, proveedores, loa
 
   return (
     <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', color: '#1f2937', margin: 0 }}>Stock de venta (por cantidad)</h2>
-        <p style={{ color: '#6b7280', margin: '0.25rem 0 0' }}>
-          Es el stock que se descuenta al facturar. Es independiente de las hormas cargadas con pistola.
-        </p>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: '1.5rem', color: '#1f2937', margin: 0 }}>Stock de venta (por cantidad)</h2>
+          <p style={{ color: '#6b7280', margin: '0.25rem 0 0' }}>
+            Es el stock que se descuenta al facturar. Es independiente de las hormas cargadas con pistola.
+          </p>
+        </div>
+        <button className="btn-export" onClick={exportarPdf} disabled={exportando || stock.length === 0}>
+          {exportando ? 'Exportando PDF...' : 'Exportar PDF'}
+        </button>
       </div>
 
       {error && (

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Elemento, Indumentaria, Unidad } from '../types';
+import { Elemento, Indumentaria, StockComercialItem, Unidad } from '../types';
 
 const toNumber = (value: unknown) => {
   if (typeof value === 'number') {
@@ -186,6 +186,17 @@ export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: st
     (p) => toNumber(p.stockMinimo) > 0 && toNumber(p.cantidadDisponible) <= toNumber(p.stockMinimo)
   ).length;
 
+  // Ordenar por tipo de prenda (categoria) y luego por nombre, para que el
+  // reporte agrupe visualmente lo que hay de cada tipo.
+  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+  const prendasOrdenadas = [...prendas].sort((a, b) => {
+    const catA = (a.categoria ?? '').trim();
+    const catB = (b.categoria ?? '').trim();
+    const porCategoria = collator.compare(catA, catB);
+    if (porCategoria !== 0) return porCategoria;
+    return collator.compare(a.nombre ?? '', b.nombre ?? '');
+  });
+
   drawHeader(doc, 'Inventario de indumentaria', 'Ropa de trabajo y entregas');
   drawSummary(doc, [
     { label: 'Prendas', value: String(prendas.length) },
@@ -197,7 +208,7 @@ export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: st
     ...tableTheme,
     startY: 58,
     head: [['ID', 'Nombre', 'Categoria', 'Talle', 'Color', 'Disponible', 'Stock min', 'Proveedor']],
-    body: prendas.map((prenda) => [
+    body: prendasOrdenadas.map((prenda) => [
       `#${prenda.id}`,
       prenda.nombre ?? '-',
       prenda.categoria ?? '-',
@@ -216,6 +227,49 @@ export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: st
       5: { halign: 'right', cellWidth: 26 },
       6: { halign: 'right', cellWidth: 24 },
       7: { cellWidth: 79 },
+    },
+  });
+
+  savePdf(doc, filename);
+};
+
+export const exportStockComercialPdfLocal = (items: StockComercialItem[], filename: string) => {
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const totalDisponible = items.reduce((sum, i) => sum + toNumber(i.cantidadDisponible), 0);
+  const conStock = items.filter((i) => toNumber(i.cantidadDisponible) > 0).length;
+  const sinStock = items.filter((i) => toNumber(i.cantidadDisponible) <= 0).length;
+
+  // Ordenar por tipo de queso y luego por nombre de producto.
+  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+  const ordenados = [...items].sort((a, b) => {
+    const porTipo = collator.compare((a.tipoQueso ?? '').trim(), (b.tipoQueso ?? '').trim());
+    if (porTipo !== 0) return porTipo;
+    return collator.compare(a.producto ?? '', b.producto ?? '');
+  });
+
+  drawHeader(doc, 'Stock de venta (facturación)', 'Cantidad disponible para facturar');
+  drawSummary(doc, [
+    { label: 'Productos', value: String(items.length) },
+    { label: 'Unidades disponibles', value: String(totalDisponible) },
+    { label: 'Con stock', value: String(conStock) },
+    { label: 'Sin stock', value: String(sinStock) },
+  ]);
+
+  autoTable(doc, {
+    ...tableTheme,
+    startY: 58,
+    head: [['Producto', 'PLU', 'Tipo', 'Disponible']],
+    body: ordenados.map((item) => [
+      item.producto ?? '-',
+      item.plu ?? '-',
+      item.tipoQueso ?? '-',
+      String(toNumber(item.cantidadDisponible)),
+    ]),
+    columnStyles: {
+      0: { cellWidth: 130 },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 62 },
+      3: { halign: 'right', cellWidth: 40 },
     },
   });
 
