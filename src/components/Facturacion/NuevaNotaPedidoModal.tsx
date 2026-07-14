@@ -23,7 +23,9 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
   onConfirm,
   onClose,
 }) => {
+  const hoy = new Date().toISOString().slice(0, 10);
   const [clienteId, setClienteId] = useState<number | ''>('');
+  const [fecha, setFecha] = useState(hoy);
   const [observaciones, setObservaciones] = useState('');
   const [quesosQty, setQuesosQty] = useState<Record<number, number>>({});
   const [elementosQty, setElementosQty] = useState<Record<number, number>>({});
@@ -69,6 +71,7 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
     });
     const result = await onConfirm({
       clienteId: Number(clienteId),
+      fecha: fecha || null,
       observaciones: observaciones.trim() || null,
       items,
     });
@@ -102,22 +105,34 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
           </div>
         )}
 
-        <div className="form-group">
-          <label className="form-label">Cliente *</label>
-          <select
-            className="form-select"
-            value={clienteId}
-            onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')}
-            required
-          >
-            <option value="">-- Seleccionar cliente --</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-                {c.numeroDocumento ? ` (${c.tipoDocumento} ${c.numeroDocumento})` : ''}
-              </option>
-            ))}
-          </select>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ flex: '1 1 320px' }}>
+            <label className="form-label">Cliente *</label>
+            <select
+              className="form-select"
+              value={clienteId}
+              onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')}
+              required
+            >
+              <option value="">-- Seleccionar cliente --</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                  {c.numeroDocumento ? ` (${c.tipoDocumento} ${c.numeroDocumento})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: '0 1 180px' }}>
+            <label className="form-label">Fecha de la nota</label>
+            <input
+              type="date"
+              className="form-input"
+              value={fecha}
+              max={hoy}
+              onChange={(e) => setFecha(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Quesos: por cantidad desde el stock comercial */}

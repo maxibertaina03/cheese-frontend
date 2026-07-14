@@ -230,6 +230,7 @@ export interface CreateNotaPedidoItem {
 export interface CreateNotaPedidoData {
   clienteId: number;
   observaciones?: string | null;
+  fecha?: string | null;
   items: CreateNotaPedidoItem[];
 }
 

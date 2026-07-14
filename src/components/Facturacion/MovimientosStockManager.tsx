@@ -33,7 +33,10 @@ const TIPO_COLOR: Record<string, string> = { ingreso: '#059669', egreso: '#dc262
 export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading }) => {
   const [producto, setProducto] = useState('todos');
   const [proveedor, setProveedor] = useState('todos');
-  const [tipo, setTipo] = useState('todos');
+  // Por defecto mostramos solo Compras (ingresos): las ventas/ajustes se generan
+  // al facturar y no tienen comprobante/precio/proveedor de compra, así que se ven
+  // vacías en esas columnas. Con el filtro "Tipo" se pueden ver igual.
+  const [tipo, setTipo] = useState('ingreso');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [texto, setTexto] = useState('');
