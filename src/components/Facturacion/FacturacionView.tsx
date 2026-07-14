@@ -11,6 +11,7 @@ import {
   Proveedor,
   Recibo,
   StockComercialItem,
+  MovimientoStockComercial,
   CargaStockComercial,
   CreateNotaPedidoData,
   CreateNotaCreditoData,
@@ -21,6 +22,7 @@ import { EmpresaForm } from './EmpresaForm';
 import { PreciosManager } from './PreciosManager';
 import { NotasPedidoManager } from './NotasPedidoManager';
 import { StockComercialManager } from './StockComercialManager';
+import { MovimientosStockManager } from './MovimientosStockManager';
 import { RecibosManager } from './RecibosManager';
 import { NotasCreditoManager } from './NotasCreditoManager';
 import { ReporteFacturacion } from './ReporteFacturacion';
@@ -65,6 +67,7 @@ interface Props {
 
   // Stock comercial
   stockComercial: StockComercialItem[];
+  movimientosStock: MovimientoStockComercial[];
   proveedores: Proveedor[];
   loadingStock: boolean;
   errorStock: string;
@@ -95,7 +98,7 @@ interface Props {
   esAdmin: boolean;
 }
 
-type Tab = 'resumen' | 'notas' | 'recibos' | 'creditos' | 'stock' | 'clientes' | 'precios' | 'empresa';
+type Tab = 'resumen' | 'notas' | 'recibos' | 'creditos' | 'stock' | 'compras' | 'clientes' | 'precios' | 'empresa';
 
 export const FacturacionView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<Tab>('notas');
@@ -148,6 +151,12 @@ export const FacturacionView: React.FC<Props> = (props) => {
           onClick={() => setTab('stock')}
         >
           📦 Stock
+        </button>
+        <button
+          className={`filter-btn ${tab === 'compras' ? 'active' : ''}`}
+          onClick={() => setTab('compras')}
+        >
+          🛒 Compras
         </button>
         <button
           className={`filter-btn ${tab === 'clientes' ? 'active' : ''}`}
@@ -219,6 +228,8 @@ export const FacturacionView: React.FC<Props> = (props) => {
           success={props.successStock}
           onIngresar={props.onIngresarStock}
         />
+      ) : tab === 'compras' ? (
+        <MovimientosStockManager movimientos={props.movimientosStock} loading={props.loadingStock} />
       ) : tab === 'clientes' ? (
         <ClientesManager
           clientes={props.clientes}

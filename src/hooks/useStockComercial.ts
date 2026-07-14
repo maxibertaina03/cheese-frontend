@@ -1,10 +1,11 @@
 // src/hooks/useStockComercial.ts
 import { useCallback, useState } from 'react';
-import { StockComercialItem, CargaStockComercial } from '../types';
+import { StockComercialItem, CargaStockComercial, MovimientoStockComercial } from '../types';
 import { apiService } from '../services/api';
 
 export const useStockComercial = (apiFetch: any) => {
   const [stock, setStock] = useState<StockComercialItem[]>([]);
+  const [movimientos, setMovimientos] = useState<MovimientoStockComercial[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -20,6 +21,17 @@ export const useStockComercial = (apiFetch: any) => {
     }
   }, [apiFetch]);
 
+  const fetchMovimientos = useCallback(async () => {
+    try {
+      const response = await apiService.getMovimientosStockComercial(apiFetch);
+      const data = await response.json();
+      setMovimientos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error al cargar movimientos de stock comercial:', err);
+      setMovimientos([]);
+    }
+  }, [apiFetch]);
+
   const ingresar = async (productoId: number, data: CargaStockComercial) => {
     setLoading(true);
     setError('');
@@ -27,7 +39,7 @@ export const useStockComercial = (apiFetch: any) => {
       const response = await apiService.ingresarStockComercial(apiFetch, productoId, data);
       if (response.ok) {
         setSuccess('Stock cargado correctamente');
-        await fetchStock();
+        await Promise.all([fetchStock(), fetchMovimientos()]);
         setTimeout(() => setSuccess(''), 3000);
         return { success: true };
       }
@@ -42,5 +54,16 @@ export const useStockComercial = (apiFetch: any) => {
     }
   };
 
-  return { stock, loading, error, success, fetchStock, ingresar, setError, setSuccess };
+  return {
+    stock,
+    movimientos,
+    loading,
+    error,
+    success,
+    fetchStock,
+    fetchMovimientos,
+    ingresar,
+    setError,
+    setSuccess,
+  };
 };

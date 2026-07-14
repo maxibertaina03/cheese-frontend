@@ -307,6 +307,9 @@ export const apiService = {
       body: JSON.stringify(data),
     }),
 
+  getMovimientosStockComercial: (apiFetch: any) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial/movimientos`),
+
   // Facturación - Recibos
   getRecibos: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/recibos`),

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Elemento, Indumentaria, StockComercialItem, Unidad } from '../types';
+import { Elemento, Indumentaria, MovimientoStockComercial, StockComercialItem, Unidad } from '../types';
 
 const toNumber = (value: unknown) => {
   if (typeof value === 'number') {
@@ -270,6 +270,70 @@ export const exportStockComercialPdfLocal = (items: StockComercialItem[], filena
       1: { cellWidth: 45 },
       2: { cellWidth: 62 },
       3: { halign: 'right', cellWidth: 40 },
+    },
+  });
+
+  savePdf(doc, filename);
+};
+
+const pesos = (value: unknown) =>
+  `$ ${toNumber(value).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const tipoMovLabel = (tipo: string) =>
+  tipo === 'ingreso' ? 'Compra' : tipo === 'egreso' ? 'Venta' : 'Ajuste';
+
+export const exportMovimientosStockPdfLocal = (
+  movimientos: MovimientoStockComercial[],
+  filename: string,
+  subtitulo = 'Historial de compras y movimientos'
+) => {
+  const doc = new jsPDF({ orientation: 'landscape' });
+
+  const ingresos = movimientos.filter((m) => m.tipo === 'ingreso');
+  const unidadesCompradas = ingresos.reduce((s, m) => s + toNumber(m.cantidad), 0);
+  const totalInvertido = ingresos.reduce((s, m) => s + toNumber(m.precioCompra) * toNumber(m.cantidad), 0);
+  const unidadesVendidas = movimientos
+    .filter((m) => m.tipo === 'egreso')
+    .reduce((s, m) => s + toNumber(m.cantidad), 0);
+
+  drawHeader(doc, 'Compras y movimientos de stock', subtitulo);
+  drawSummary(doc, [
+    { label: 'Movimientos', value: String(movimientos.length) },
+    { label: 'Unidades compradas', value: String(unidadesCompradas) },
+    { label: 'Total invertido', value: pesos(totalInvertido) },
+    { label: 'Unidades vendidas', value: String(unidadesVendidas) },
+  ]);
+
+  autoTable(doc, {
+    ...tableTheme,
+    startY: 58,
+    head: [['Fecha', 'Producto', 'Tipo', 'Cant.', 'Comprobante', 'Precio u.', 'Total', 'Proveedor', 'Usuario']],
+    body: movimientos.map((m) => {
+      const comprobante = [m.comprobantePrefijo, m.comprobanteNumero].filter(Boolean).join('-') || '-';
+      const esCompra = m.tipo === 'ingreso';
+      const total = esCompra ? toNumber(m.precioCompra) * toNumber(m.cantidad) : 0;
+      return [
+        date(m.fechaComprobante || m.createdAt),
+        `${m.producto ?? '-'}${m.plu ? ` (${m.plu})` : ''}`,
+        tipoMovLabel(m.tipo),
+        String(toNumber(m.cantidad)),
+        comprobante,
+        esCompra && m.precioCompra != null ? pesos(m.precioCompra) : '-',
+        esCompra && m.precioCompra != null ? pesos(total) : '-',
+        m.proveedor ?? '-',
+        m.usuario?.username ?? '-',
+      ];
+    }),
+    columnStyles: {
+      0: { cellWidth: 24 },
+      1: { cellWidth: 62 },
+      2: { cellWidth: 22 },
+      3: { halign: 'right', cellWidth: 18 },
+      4: { cellWidth: 34 },
+      5: { halign: 'right', cellWidth: 28 },
+      6: { halign: 'right', cellWidth: 30 },
+      7: { cellWidth: 40 },
+      8: { cellWidth: 19 },
     },
   });
 

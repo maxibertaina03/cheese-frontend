@@ -213,10 +213,12 @@ function App() {
 
   const {
     stock: stockComercial,
+    movimientos: movimientosStock,
     loading: loadingStock,
     error: errorStock,
     success: successStock,
     fetchStock: fetchStockComercial,
+    fetchMovimientos: fetchMovimientosStock,
     ingresar: ingresarStockComercial,
   } = useStockComercial(apiFetch);
 
@@ -262,14 +264,14 @@ function App() {
           fetchProveedores(),
           // Facturación completa solo con permiso
           ...(canAccess(user, 'facturacion')
-            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchRecibos(), fetchNotasCredito()]
+            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchMovimientosStock(), fetchRecibos(), fetchNotasCredito()]
             : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchRecibos, fetchNotasCredito]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchMovimientosStock, fetchRecibos, fetchNotasCredito]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -439,7 +441,7 @@ function App() {
   const handleCrearNotaPedido = async (data: CreateNotaPedidoData) => {
     const result = await createNota(data);
     if (result.success && result.nota) {
-      await Promise.all([fetchStockComercial(), fetchElementos()]);
+      await Promise.all([fetchStockComercial(), fetchMovimientosStock(), fetchElementos()]);
       await handleImprimirNota(result.nota.id);
     }
     return { success: result.success };
@@ -526,7 +528,7 @@ function App() {
   const handleCrearNotaCredito = async (data: CreateNotaCreditoData) => {
     const result = await createNotaCredito(data);
     if (result.success && result.nota) {
-      await Promise.all([fetchNotas(), fetchStockComercial(), fetchElementos()]);
+      await Promise.all([fetchNotas(), fetchStockComercial(), fetchMovimientosStock(), fetchElementos()]);
       await handleImprimirNotaCredito(result.nota.id);
     }
     return { success: result.success };
@@ -904,6 +906,7 @@ function App() {
           onCrearNota={handleCrearNotaPedido}
           onImprimirNota={handleImprimirNota}
           stockComercial={stockComercial}
+          movimientosStock={movimientosStock}
           proveedores={proveedores}
           loadingStock={loadingStock}
           errorStock={errorStock}

@@ -172,6 +172,29 @@ export interface StockComercialItem {
   cantidadDisponible: number;
 }
 
+// Movimiento del stock de facturación (carga/compra, venta o ajuste)
+export interface MovimientoStockComercial {
+  id: number;
+  productoId: number;
+  producto: string | null;
+  plu: string | null;
+  tipoQueso: string | null;
+  tipo: 'ingreso' | 'egreso' | 'ajuste';
+  cantidad: number;
+  stockAnterior: number;
+  stockNuevo: number;
+  referencia: string | null;
+  observaciones: string | null;
+  fechaComprobante: string | null;
+  comprobantePrefijo: string | null;
+  comprobanteNumero: string | null;
+  precioCompra: number | null;
+  proveedorId: number | null;
+  proveedor: string | null;
+  usuario: { id: number; username: string } | null;
+  createdAt: string;
+}
+
 // Datos de la carga (compra) de stock comercial
 export interface CargaStockComercial {
   cantidad: number;
