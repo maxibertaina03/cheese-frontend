@@ -21,8 +21,8 @@ import { HistorialView } from './components/History/HistorialView';
 import { AdminPanel } from './components/Admin/AdminPanel';
 import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';
-import { useElementos } from './hooks/useElementos';
-import { ElementosView } from './components/Elementos/ElementosView';
+import { useElementos } from './contextos/elementos/hooks/useElementos';
+import { ElementosView } from './contextos/elementos/componentes/ElementosView';
 import { useIndumentaria } from './contextos/indumentaria/hooks/useIndumentaria';
 import { useProveedores } from './hooks/useProveedores';
 import { useClientes } from './contextos/facturacion/hooks/useClientes';

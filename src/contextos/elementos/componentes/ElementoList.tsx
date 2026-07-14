@@ -1,6 +1,6 @@
-// src/components/Elementos/ElementoList.tsx
+// src/contextos/elementos/componentes/ElementoList.tsx
 import React from 'react';
-import { Elemento, User } from '../../types';
+import { Elemento, User } from '../../../types';
 import { ElementoCard } from './ElementoCard';
 
 interface ElementoListProps {

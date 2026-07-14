@@ -1,7 +1,7 @@
-// src/components/Elementos/ElementoCard.tsx
+// src/contextos/elementos/componentes/ElementoCard.tsx
 import React from 'react';
-import { Elemento, User } from '../../types';
-import { usePermissions } from '../../utils/permissions';
+import { Elemento, User } from '../../../types';
+import { usePermissions } from '../../../utils/permissions';
 
 interface ElementoCardProps {
   elemento: Elemento;

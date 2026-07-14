@@ -1,6 +1,6 @@
-// src/components/Elementos/MovimientoModal.tsx
+// src/contextos/elementos/componentes/MovimientoModal.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Elemento, Motivo } from '../../types';
+import { Elemento, Motivo } from '../../../types';
 
 interface MovimientoModalProps {
   isOpen: boolean;

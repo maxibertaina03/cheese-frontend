@@ -1,12 +1,12 @@
-// src/components/Elementos/ElementosView.tsx
+// src/contextos/elementos/componentes/ElementosView.tsx
 import React, { useMemo, useState } from 'react';
-import { Elemento, MovimientoElemento, Motivo, User } from '../../types';
+import { Elemento, MovimientoElemento, Motivo, User } from '../../../types';
 import { ElementoForm } from './ElementoForm';
 import { ElementoList } from './ElementoList';
 import { MovimientoModal } from './MovimientoModal';
 import { MovimientosModal } from './MovimientosModal';
-import { usePermissions } from '../../utils/permissions';
-import { exportElementosPdfLocal } from '../../utils/pdfExport';
+import { usePermissions } from '../../../utils/permissions';
+import { exportElementosPdfLocal } from '../../../utils/pdfExport';
 
 interface ElementosViewProps {
   user: User | null;

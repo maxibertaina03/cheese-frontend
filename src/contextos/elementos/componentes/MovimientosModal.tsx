@@ -1,7 +1,7 @@
-// src/components/Elementos/MovimientosModal.tsx
+// src/contextos/elementos/componentes/MovimientosModal.tsx
 import React from 'react';
-import { Elemento, MovimientoElemento } from '../../types';
-import { formatDate } from '../../utils/dates';
+import { Elemento, MovimientoElemento } from '../../../types';
+import { formatDate } from '../../../utils/dates';
 
 interface MovimientosModalProps {
   isOpen: boolean;
