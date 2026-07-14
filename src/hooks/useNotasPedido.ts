@@ -1,46 +1,26 @@
 // src/hooks/useNotasPedido.ts
-import { useCallback, useState } from 'react';
 import { NotaPedido, CreateNotaPedidoData } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useNotasPedido = (apiFetch: any) => {
-  const [notas, setNotas] = useState<NotaPedido[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchNotas = useCallback(async () => {
-    try {
-      const response = await apiService.getNotasPedido(apiFetch);
-      const data = await response.json();
-      setNotas(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar notas de pedido:', err);
-      setNotas([]);
-    }
-  }, [apiFetch]);
+  const { items: notas, refrescar: fetchNotas } = useColeccion<NotaPedido>(() =>
+    apiService.getNotasPedido(apiFetch)
+  );
 
   const createNota = async (data: CreateNotaPedidoData) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.createNotaPedido(apiFetch, data);
-      if (response.ok) {
-        const nota = (await response.json()) as NotaPedido;
-        setSuccess(`Nota de pedido ${nota.serie}-${nota.numero} creada`);
-        await fetchNotas();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true, nota };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al crear la nota de pedido');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
+    const resultado = await ejecutar<NotaPedido>(() => apiService.createNotaPedido(apiFetch, data), {
+      mensajeExito: (nota) => `Nota de pedido ${nota.serie}-${nota.numero} creada`,
+      mensajeErrorDefault: 'Error al crear la nota de pedido',
+      alTerminar: fetchNotas,
+    });
+    return resultado.success
+      ? { success: true, nota: resultado.data }
+      : { success: false };
   };
 
   return {
