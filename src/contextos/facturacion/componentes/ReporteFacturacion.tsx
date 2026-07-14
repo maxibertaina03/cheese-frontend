@@ -1,7 +1,7 @@
 // src/components/Facturacion/ReporteFacturacion.tsx
 import React, { useCallback, useEffect, useState } from 'react';
-import { ReporteFacturacion as Reporte } from '../../types';
-import { apiService } from '../../services/api';
+import { ReporteFacturacion as Reporte } from '../../../types';
+import { apiService } from '../../../services/api';
 
 interface Props {
   apiFetch: any;

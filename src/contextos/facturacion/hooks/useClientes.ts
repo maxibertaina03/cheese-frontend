@@ -1,8 +1,8 @@
 // src/hooks/useClientes.ts
-import { Cliente } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+import { Cliente } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useClientes = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

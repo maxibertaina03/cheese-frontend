@@ -1,6 +1,6 @@
 // src/components/Facturacion/NuevaNotaCreditoModal.tsx
 import React, { useMemo, useState } from 'react';
-import { NotaPedido, NotaParaDevolver, CreateNotaCreditoData } from '../../types';
+import { NotaPedido, NotaParaDevolver, CreateNotaCreditoData } from '../../../types';
 
 interface Props {
   notas: NotaPedido[];

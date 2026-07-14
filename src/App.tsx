@@ -25,14 +25,14 @@ import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
 import { useIndumentaria } from './hooks/useIndumentaria';
 import { useProveedores } from './hooks/useProveedores';
-import { useClientes } from './hooks/useClientes';
-import { useEmpresa } from './hooks/useEmpresa';
-import { useNotasPedido } from './hooks/useNotasPedido';
-import { useStockComercial } from './hooks/useStockComercial';
-import { useRecibos } from './hooks/useRecibos';
-import { useNotasCredito } from './hooks/useNotasCredito';
+import { useClientes } from './contextos/facturacion/hooks/useClientes';
+import { useEmpresa } from './contextos/facturacion/hooks/useEmpresa';
+import { useNotasPedido } from './contextos/facturacion/hooks/useNotasPedido';
+import { useStockComercial } from './contextos/facturacion/hooks/useStockComercial';
+import { useRecibos } from './contextos/facturacion/hooks/useRecibos';
+import { useNotasCredito } from './contextos/facturacion/hooks/useNotasCredito';
 import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
-import { FacturacionView } from './components/Facturacion/FacturacionView';
+import { FacturacionView } from './contextos/facturacion/componentes/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
 
 const downloadBlob = (blob: Blob, filename: string) => {

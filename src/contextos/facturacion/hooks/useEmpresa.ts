@@ -1,8 +1,8 @@
 // src/hooks/useEmpresa.ts
 import { useCallback, useState } from 'react';
-import { Empresa } from '../types';
-import { apiService } from '../services/api';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+import { Empresa } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useEmpresa = (apiFetch: any) => {
   // La empresa es un singleton (un objeto, no una colección), por eso no usa useColeccion.

@@ -1,6 +1,6 @@
 // src/components/Facturacion/NotasPedidoManager.tsx
 import React, { useMemo, useState } from 'react';
-import { Cliente, Elemento, NotaPedido, StockComercialItem, CreateNotaPedidoData } from '../../types';
+import { Cliente, Elemento, NotaPedido, StockComercialItem, CreateNotaPedidoData } from '../../../types';
 import { NuevaNotaPedidoModal } from './NuevaNotaPedidoModal';
 import { FiltroComprobantes, useFiltroFechaTexto } from './FiltroComprobantes';
 

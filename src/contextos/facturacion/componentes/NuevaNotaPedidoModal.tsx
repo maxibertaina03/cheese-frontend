@@ -1,6 +1,6 @@
 // src/components/Facturacion/NuevaNotaPedidoModal.tsx
 import React, { useMemo, useState } from 'react';
-import { Cliente, Elemento, StockComercialItem, CreateNotaPedidoData } from '../../types';
+import { Cliente, Elemento, StockComercialItem, CreateNotaPedidoData } from '../../../types';
 
 interface Props {
   clientes: Cliente[];

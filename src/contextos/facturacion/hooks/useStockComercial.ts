@@ -1,8 +1,8 @@
 // src/hooks/useStockComercial.ts
-import { StockComercialItem, CargaStockComercial, MovimientoStockComercial } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+import { StockComercialItem, CargaStockComercial, MovimientoStockComercial } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useStockComercial = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

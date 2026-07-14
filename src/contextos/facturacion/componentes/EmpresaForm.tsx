@@ -1,6 +1,6 @@
 // src/components/Facturacion/EmpresaForm.tsx
 import React, { useEffect, useState } from 'react';
-import { Empresa } from '../../types';
+import { Empresa } from '../../../types';
 
 interface Props {
   empresa: Empresa | null;

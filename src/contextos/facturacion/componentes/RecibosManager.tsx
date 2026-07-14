@@ -1,17 +1,17 @@
-// src/components/Facturacion/NotasCreditoManager.tsx
+// src/components/Facturacion/RecibosManager.tsx
 import React, { useMemo, useState } from 'react';
-import { NotaPedido, NotaCredito, NotaParaDevolver, CreateNotaCreditoData } from '../../types';
-import { NuevaNotaCreditoModal } from './NuevaNotaCreditoModal';
+import { Cliente, NotaPedido, Recibo, CreateReciboData } from '../../../types';
+import { NuevoReciboModal } from './NuevoReciboModal';
 import { FiltroComprobantes, useFiltroFechaTexto } from './FiltroComprobantes';
 
 interface Props {
-  notasCredito: NotaCredito[];
+  recibos: Recibo[];
+  clientes: Cliente[];
   notas: NotaPedido[];
   loading: boolean;
   error: string;
   success: string;
-  onFetchNota: (notaPedidoId: number) => Promise<NotaParaDevolver | null>;
-  onCrear: (data: CreateNotaCreditoData) => Promise<{ success: boolean }>;
+  onCrearRecibo: (data: CreateReciboData) => Promise<{ success: boolean }>;
   onImprimir: (id: number) => void;
 }
 
@@ -27,38 +27,36 @@ const th: React.CSSProperties = {
 };
 const td: React.CSSProperties = { padding: '0.7rem 1rem' };
 
-export const NotasCreditoManager: React.FC<Props> = ({
-  notasCredito,
+export const RecibosManager: React.FC<Props> = ({
+  recibos,
+  clientes,
   notas,
   loading,
   error,
   success,
-  onFetchNota,
-  onCrear,
+  onCrearRecibo,
   onImprimir,
 }) => {
-  const [showNueva, setShowNueva] = useState(false);
+  const [showNuevo, setShowNuevo] = useState(false);
   const filtro = useFiltroFechaTexto();
+  const [medioFiltro, setMedioFiltro] = useState('todos');
 
-  const notasCreditoFiltradas = useMemo(
+  const recibosFiltrados = useMemo(
     () =>
-      notasCredito.filter((nc) =>
-        filtro.pasa(
-          nc.fecha,
-          `${nc.serie}-${nc.numero}`,
-          nc.cliente?.nombre,
-          nc.notaPedido ? `${nc.notaPedido.serie}-${nc.notaPedido.numero}` : ''
-        )
+      recibos.filter(
+        (r) =>
+          (medioFiltro === 'todos' || r.medioPago === medioFiltro) &&
+          filtro.pasa(r.fecha, `${r.serie}-${r.numero}`, r.cliente?.nombre)
       ),
-    [notasCredito, filtro]
+    [recibos, medioFiltro, filtro]
   );
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', color: '#1f2937', margin: 0 }}>Notas de crédito</h2>
-        <button className="btn-primary" onClick={() => setShowNueva(true)} disabled={notas.length === 0}>
-          + Nueva nota de crédito
+        <h2 style={{ fontSize: '1.5rem', color: '#1f2937', margin: 0 }}>Recibos</h2>
+        <button className="btn-primary" onClick={() => setShowNuevo(true)} disabled={clientes.length === 0}>
+          + Nuevo recibo
         </button>
       </div>
 
@@ -75,7 +73,16 @@ export const NotasCreditoManager: React.FC<Props> = ({
         </div>
       )}
 
-      <FiltroComprobantes {...filtro} placeholder="N°, cliente o nota" />
+      <FiltroComprobantes {...filtro}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Medio</label>
+          <select className="form-select" value={medioFiltro} onChange={(e) => setMedioFiltro(e.target.value)}>
+            <option value="todos">Todos</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+          </select>
+        </div>
+      </FiltroComprobantes>
 
       <div style={{ overflowX: 'auto' }}>
         <table
@@ -92,31 +99,29 @@ export const NotasCreditoManager: React.FC<Props> = ({
             <tr style={{ background: '#f3f4f6' }}>
               <th style={th}>N°</th>
               <th style={th}>Fecha</th>
-              <th style={th}>Nota pedido</th>
               <th style={th}>Cliente</th>
               <th style={{ ...th, textAlign: 'right' }}>Monto</th>
+              <th style={th}>Medio</th>
               <th style={{ ...th, textAlign: 'center' }}>PDF</th>
             </tr>
           </thead>
           <tbody>
-            {notasCreditoFiltradas.length === 0 ? (
+            {recibosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
-                  No hay notas de crédito para el filtro
+                  No hay recibos para el filtro
                 </td>
               </tr>
             ) : (
-              notasCreditoFiltradas.map((nc) => (
-                <tr key={nc.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                  <td style={{ ...td, fontWeight: 700, color: '#1f2937' }}>{nc.serie}-{nc.numero}</td>
-                  <td style={td}>{new Date(nc.fecha).toLocaleDateString('es-AR')}</td>
-                  <td style={td}>
-                    {nc.notaPedido ? `${nc.notaPedido.serie}-${nc.notaPedido.numero}` : '-'}
-                  </td>
-                  <td style={td}>{nc.cliente?.nombre ?? '-'}</td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{money(nc.montoTotal)}</td>
+              recibosFiltrados.map((r) => (
+                <tr key={r.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                  <td style={{ ...td, fontWeight: 700, color: '#1f2937' }}>{r.serie}-{r.numero}</td>
+                  <td style={td}>{new Date(r.fecha).toLocaleDateString('es-AR')}</td>
+                  <td style={td}>{r.cliente?.nombre ?? '-'}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{money(r.montoTotal)}</td>
+                  <td style={{ ...td, textTransform: 'capitalize' }}>{r.medioPago}</td>
                   <td style={{ ...td, textAlign: 'center' }}>
-                    <button className="btn-export" onClick={() => onImprimir(nc.id)}>
+                    <button className="btn-export" onClick={() => onImprimir(r.id)}>
                       Imprimir
                     </button>
                   </td>
@@ -127,14 +132,14 @@ export const NotasCreditoManager: React.FC<Props> = ({
         </table>
       </div>
 
-      {showNueva && (
-        <NuevaNotaCreditoModal
+      {showNuevo && (
+        <NuevoReciboModal
+          clientes={clientes}
           notas={notas}
           loading={loading}
           error={error}
-          onFetchNota={onFetchNota}
-          onConfirm={onCrear}
-          onClose={() => setShowNueva(false)}
+          onConfirm={onCrearRecibo}
+          onClose={() => setShowNuevo(false)}
         />
       )}
     </div>

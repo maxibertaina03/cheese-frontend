@@ -1,7 +1,7 @@
 // src/components/Facturacion/StockComercialManager.tsx
 import React, { useState } from 'react';
-import { StockComercialItem, Proveedor, CargaStockComercial } from '../../types';
-import { exportStockComercialPdfLocal } from '../../utils/pdfExport';
+import { StockComercialItem, Proveedor, CargaStockComercial } from '../../../types';
+import { exportStockComercialPdfLocal } from '../../../utils/pdfExport';
 
 interface Props {
   stock: StockComercialItem[];

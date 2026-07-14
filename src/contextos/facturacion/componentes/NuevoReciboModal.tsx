@@ -1,6 +1,6 @@
 // src/components/Facturacion/NuevoReciboModal.tsx
 import React, { useMemo, useState } from 'react';
-import { Cliente, NotaPedido, MedioPago, CreateReciboData } from '../../types';
+import { Cliente, NotaPedido, MedioPago, CreateReciboData } from '../../../types';
 
 interface Props {
   clientes: Cliente[];

@@ -1,8 +1,8 @@
 // src/hooks/useNotasCredito.ts
-import { NotaCredito, CreateNotaCreditoData } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+import { NotaCredito, CreateNotaCreditoData } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useNotasCredito = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

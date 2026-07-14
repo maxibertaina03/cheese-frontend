@@ -16,7 +16,7 @@ import {
   CreateNotaPedidoData,
   CreateNotaCreditoData,
   CreateReciboData,
-} from '../../types';
+} from '../../../types';
 import { ClientesManager } from './ClientesManager';
 import { EmpresaForm } from './EmpresaForm';
 import { PreciosManager } from './PreciosManager';

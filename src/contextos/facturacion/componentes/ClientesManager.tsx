@@ -1,7 +1,7 @@
 // src/components/Facturacion/ClientesManager.tsx
 import React, { useEffect, useState } from 'react';
-import { Cliente } from '../../types';
-import { DeleteConfirmModal } from '../Admin/DeleteConfirmModal';
+import { Cliente } from '../../../types';
+import { DeleteConfirmModal } from '../../../components/Admin/DeleteConfirmModal';
 
 interface Props {
   clientes: Cliente[];

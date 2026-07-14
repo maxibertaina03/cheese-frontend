@@ -1,6 +1,6 @@
 // src/components/Facturacion/PreciosManager.tsx
 import React, { useState } from 'react';
-import { Producto, Elemento } from '../../types';
+import { Producto, Elemento } from '../../../types';
 
 interface Props {
   productos: Producto[];
