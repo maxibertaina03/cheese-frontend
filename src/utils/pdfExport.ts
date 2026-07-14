@@ -94,6 +94,26 @@ const tableTheme = {
   margin: { left: 10, right: 10 },
 };
 
+// Título de sección dentro de un reporte (barra oscura con texto). Devuelve la Y siguiente.
+const drawSectionBar = (doc: jsPDF, title: string, y: number) => {
+  doc.setFillColor(31, 41, 55);
+  doc.rect(10, y, 277, 9, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text(title.toUpperCase(), 14, y + 6.2);
+  doc.setTextColor(17, 24, 39);
+  return y + 12;
+};
+
+// Y donde terminó la última tabla dibujada por autoTable (para encadenar secciones).
+const afterTableY = (doc: jsPDF, fallback: number) => {
+  const last = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+  return last ? last.finalY : fallback;
+};
+
+const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
+
 export const exportInventarioPdfLocal = (unidades: Unidad[], filename: string) => {
   const doc = new jsPDF({ orientation: 'landscape' });
   const totalPeso = unidades.reduce((sum, unidad) => sum + toNumber(unidad.pesoActual), 0);
@@ -109,32 +129,53 @@ export const exportInventarioPdfLocal = (unidades: Unidad[], filename: string) =
     { label: 'Egreso acumulado', value: kg(totalEgreso) },
   ]);
 
-  autoTable(doc, {
-    ...tableTheme,
-    startY: 58,
-    head: [['ID', 'Producto', 'PLU', 'Tipo', 'Inicial', 'Actual', 'Egreso', 'Motivo', 'Ingreso']],
-    body: unidades.map((unidad) => [
-      `#${unidad.id}`,
-      unidad.producto?.nombre ?? '-',
-      unidad.producto?.plu ?? '-',
-      unidad.producto?.tipoQueso?.nombre ?? '-',
-      kg(unidad.pesoInicial),
-      kg(unidad.pesoActual),
-      kg(toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual)),
-      unidad.motivo?.nombre ?? '-',
-      date(unidad.createdAt),
-    ]),
-    columnStyles: {
-      0: { cellWidth: 14 },
-      1: { cellWidth: 58 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 28 },
-      4: { halign: 'right', cellWidth: 24 },
-      5: { halign: 'right', cellWidth: 24 },
-      6: { halign: 'right', cellWidth: 24 },
-      7: { cellWidth: 42 },
-      8: { cellWidth: 27 },
-    },
+  // Agrupar por tipo de queso; dentro de cada grupo, de mayor a menor peso actual.
+  const grupos = new Map<string, Unidad[]>();
+  for (const u of unidades) {
+    const tipo = u.producto?.tipoQueso?.nombre?.trim() || 'Sin tipo';
+    const arr = grupos.get(tipo);
+    if (arr) arr.push(u);
+    else grupos.set(tipo, [u]);
+  }
+  const tiposOrdenados = Array.from(grupos.keys()).sort(collator.compare);
+
+  const columnStyles = {
+    0: { cellWidth: 16 },
+    1: { cellWidth: 70 },
+    2: { cellWidth: 34 },
+    3: { halign: 'right' as const, cellWidth: 30 },
+    4: { halign: 'right' as const, cellWidth: 30 },
+    5: { halign: 'right' as const, cellWidth: 30 },
+    6: { cellWidth: 40 },
+    7: { cellWidth: 27 },
+  };
+  const head = [['ID', 'Producto', 'PLU', 'Inicial', 'Actual', 'Egreso', 'Motivo', 'Ingreso']];
+
+  let y = 55;
+  tiposOrdenados.forEach((tipo, i) => {
+    const filas = grupos
+      .get(tipo)!
+      .sort((a, b) => toNumber(b.pesoActual) - toNumber(a.pesoActual));
+    const pesoTipo = filas.reduce((s, u) => s + toNumber(u.pesoActual), 0);
+
+    y = i === 0 ? y : afterTableY(doc, y) + 10;
+    y = drawSectionBar(doc, `${tipo} — ${filas.length} unidades · ${kg(pesoTipo)}`, y);
+    autoTable(doc, {
+      ...tableTheme,
+      startY: y,
+      head,
+      body: filas.map((unidad) => [
+        `#${unidad.id}`,
+        unidad.producto?.nombre ?? '-',
+        unidad.producto?.plu ?? '-',
+        kg(unidad.pesoInicial),
+        kg(unidad.pesoActual),
+        kg(toNumber(unidad.pesoInicial) - toNumber(unidad.pesoActual)),
+        unidad.motivo?.nombre ?? '-',
+        date(unidad.createdAt),
+      ]),
+      columnStyles,
+    });
   });
 
   savePdf(doc, filename);
@@ -154,26 +195,52 @@ export const exportElementosPdfLocal = (elementos: Elemento[], filename: string)
     { label: 'Bajo stock', value: String(bajos) },
   ]);
 
-  autoTable(doc, {
-    ...tableTheme,
-    startY: 58,
-    head: [['ID', 'Nombre', 'Disponible', 'Total', 'Estado', 'Descripcion']],
-    body: elementos.map((elemento) => [
-      `#${elemento.id}`,
-      elemento.nombre ?? '-',
-      String(toNumber(elemento.cantidadDisponible)),
-      String(toNumber(elemento.cantidadTotal)),
-      elemento.activo ? 'Activo' : 'Inactivo',
-      elemento.descripcion ?? '-',
-    ]),
-    columnStyles: {
-      0: { cellWidth: 16 },
-      1: { cellWidth: 70 },
-      2: { halign: 'right', cellWidth: 28 },
-      3: { halign: 'right', cellWidth: 28 },
-      4: { cellWidth: 28 },
-      5: { cellWidth: 107 },
-    },
+  // Tres secciones por estado: con stock (>5), bajo stock (1-5) y sin stock (0),
+  // cada una de mayor a menor disponible.
+  const porDisp = (a: Elemento, b: Elemento) =>
+    toNumber(b.cantidadDisponible) - toNumber(a.cantidadDisponible) ||
+    collator.compare(a.nombre ?? '', b.nombre ?? '');
+  const conStock = elementos.filter((e) => toNumber(e.cantidadDisponible) > 5).sort(porDisp);
+  const bajoStock = elementos
+    .filter((e) => toNumber(e.cantidadDisponible) > 0 && toNumber(e.cantidadDisponible) <= 5)
+    .sort(porDisp);
+  const sinStock = elementos.filter((e) => toNumber(e.cantidadDisponible) <= 0).sort(porDisp);
+
+  const columnStyles = {
+    0: { cellWidth: 16 },
+    1: { cellWidth: 70 },
+    2: { halign: 'right' as const, cellWidth: 28 },
+    3: { halign: 'right' as const, cellWidth: 28 },
+    4: { cellWidth: 28 },
+    5: { cellWidth: 107 },
+  };
+  const head = [['ID', 'Nombre', 'Disponible', 'Total', 'Estado', 'Descripcion']];
+  const toRow = (e: Elemento) => [
+    `#${e.id}`,
+    e.nombre ?? '-',
+    String(toNumber(e.cantidadDisponible)),
+    String(toNumber(e.cantidadTotal)),
+    e.activo ? 'Activo' : 'Inactivo',
+    e.descripcion ?? '-',
+  ];
+
+  const secciones: Array<{ titulo: string; filas: Elemento[]; vacio: string }> = [
+    { titulo: `Con stock — ${conStock.length}`, filas: conStock, vacio: 'Sin elementos con stock' },
+    { titulo: `Bajo stock (1 a 5) — ${bajoStock.length}`, filas: bajoStock, vacio: 'Ninguno bajo stock' },
+    { titulo: `Sin stock (0) — ${sinStock.length}`, filas: sinStock, vacio: 'Ninguno sin stock' },
+  ];
+
+  let y = 55;
+  secciones.forEach((sec, i) => {
+    y = i === 0 ? y : afterTableY(doc, y) + 10;
+    y = drawSectionBar(doc, sec.titulo, y);
+    autoTable(doc, {
+      ...tableTheme,
+      startY: y,
+      head,
+      body: sec.filas.length ? sec.filas.map(toRow) : [[sec.vacio, '', '', '', '', '']],
+      columnStyles,
+    });
   });
 
   savePdf(doc, filename);
@@ -188,7 +255,6 @@ export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: st
 
   // Ordenar por tipo de prenda (categoria) y luego por nombre, para que el
   // reporte agrupe visualmente lo que hay de cada tipo.
-  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
   const prendasOrdenadas = [...prendas].sort((a, b) => {
     const catA = (a.categoria ?? '').trim();
     const catB = (b.categoria ?? '').trim();
@@ -236,41 +302,65 @@ export const exportIndumentariaPdfLocal = (prendas: Indumentaria[], filename: st
 export const exportStockComercialPdfLocal = (items: StockComercialItem[], filename: string) => {
   const doc = new jsPDF({ orientation: 'landscape' });
   const totalDisponible = items.reduce((sum, i) => sum + toNumber(i.cantidadDisponible), 0);
-  const conStock = items.filter((i) => toNumber(i.cantidadDisponible) > 0).length;
-  const sinStock = items.filter((i) => toNumber(i.cantidadDisponible) <= 0).length;
 
-  // Ordenar por tipo de queso y luego por nombre de producto.
-  const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
-  const ordenados = [...items].sort((a, b) => {
-    const porTipo = collator.compare((a.tipoQueso ?? '').trim(), (b.tipoQueso ?? '').trim());
-    if (porTipo !== 0) return porTipo;
-    return collator.compare(a.producto ?? '', b.producto ?? '');
-  });
+  // Con stock: de mayor a menor cantidad (desempate por nombre).
+  const conStock = items
+    .filter((i) => toNumber(i.cantidadDisponible) > 0)
+    .sort(
+      (a, b) =>
+        toNumber(b.cantidadDisponible) - toNumber(a.cantidadDisponible) ||
+        collator.compare(a.producto ?? '', b.producto ?? '')
+    );
+  // Sin stock: alfabético por tipo y nombre.
+  const sinStock = items
+    .filter((i) => toNumber(i.cantidadDisponible) <= 0)
+    .sort(
+      (a, b) =>
+        collator.compare((a.tipoQueso ?? '').trim(), (b.tipoQueso ?? '').trim()) ||
+        collator.compare(a.producto ?? '', b.producto ?? '')
+    );
 
   drawHeader(doc, 'Stock de venta (facturación)', 'Cantidad disponible para facturar');
   drawSummary(doc, [
     { label: 'Productos', value: String(items.length) },
     { label: 'Unidades disponibles', value: String(totalDisponible) },
-    { label: 'Con stock', value: String(conStock) },
-    { label: 'Sin stock', value: String(sinStock) },
+    { label: 'Con stock', value: String(conStock.length) },
+    { label: 'Sin stock', value: String(sinStock.length) },
   ]);
 
+  const columnStyles = {
+    0: { cellWidth: 130 },
+    1: { cellWidth: 45 },
+    2: { cellWidth: 62 },
+    3: { halign: 'right' as const, cellWidth: 40 },
+  };
+  const head = [['Producto', 'PLU', 'Tipo', 'Disponible']];
+  const toRow = (item: StockComercialItem) => [
+    item.producto ?? '-',
+    item.plu ?? '-',
+    item.tipoQueso ?? '-',
+    String(toNumber(item.cantidadDisponible)),
+  ];
+
+  // --- Sección 1: productos con stock (de mayor a menor) ---
+  let y = drawSectionBar(doc, `Con stock — ${conStock.length} productos · ${totalDisponible} unidades`, 55);
   autoTable(doc, {
     ...tableTheme,
-    startY: 58,
-    head: [['Producto', 'PLU', 'Tipo', 'Disponible']],
-    body: ordenados.map((item) => [
-      item.producto ?? '-',
-      item.plu ?? '-',
-      item.tipoQueso ?? '-',
-      String(toNumber(item.cantidadDisponible)),
-    ]),
-    columnStyles: {
-      0: { cellWidth: 130 },
-      1: { cellWidth: 45 },
-      2: { cellWidth: 62 },
-      3: { halign: 'right', cellWidth: 40 },
-    },
+    startY: y,
+    head,
+    body: conStock.length ? conStock.map(toRow) : [['Sin productos con stock', '', '', '']],
+    columnStyles,
+  });
+
+  // --- Sección 2: productos sin stock (0 unidades) ---
+  y = afterTableY(doc, y) + 10;
+  y = drawSectionBar(doc, `Sin stock (0 unidades) — ${sinStock.length} productos`, y);
+  autoTable(doc, {
+    ...tableTheme,
+    startY: y,
+    head,
+    body: sinStock.length ? sinStock.map(toRow) : [['Todos los productos tienen stock', '', '', '']],
+    columnStyles,
   });
 
   savePdf(doc, filename);
@@ -304,38 +394,65 @@ export const exportMovimientosStockPdfLocal = (
     { label: 'Unidades vendidas', value: String(unidadesVendidas) },
   ]);
 
-  autoTable(doc, {
-    ...tableTheme,
-    startY: 58,
-    head: [['Fecha', 'Producto', 'Tipo', 'Cant.', 'Comprobante', 'Precio u.', 'Total', 'Proveedor', 'Usuario']],
-    body: movimientos.map((m) => {
-      const comprobante = [m.comprobantePrefijo, m.comprobanteNumero].filter(Boolean).join('-') || '-';
-      const esCompra = m.tipo === 'ingreso';
-      const total = esCompra ? toNumber(m.precioCompra) * toNumber(m.cantidad) : 0;
-      return [
-        date(m.fechaComprobante || m.createdAt),
-        `${m.producto ?? '-'}${m.plu ? ` (${m.plu})` : ''}`,
-        tipoMovLabel(m.tipo),
-        String(toNumber(m.cantidad)),
-        comprobante,
-        esCompra && m.precioCompra != null ? pesos(m.precioCompra) : '-',
-        esCompra && m.precioCompra != null ? pesos(total) : '-',
-        m.proveedor ?? '-',
-        m.usuario?.username ?? '-',
-      ];
-    }),
-    columnStyles: {
-      0: { cellWidth: 24 },
-      1: { cellWidth: 62 },
-      2: { cellWidth: 22 },
-      3: { halign: 'right', cellWidth: 18 },
-      4: { cellWidth: 34 },
-      5: { halign: 'right', cellWidth: 28 },
-      6: { halign: 'right', cellWidth: 30 },
-      7: { cellWidth: 40 },
-      8: { cellWidth: 19 },
-    },
+  // Agrupar por proveedor con subtotal invertido; grupos de mayor a menor inversión.
+  const grupos = new Map<string, MovimientoStockComercial[]>();
+  for (const m of movimientos) {
+    const prov = m.proveedor?.trim() || 'Sin proveedor';
+    const arr = grupos.get(prov);
+    if (arr) arr.push(m);
+    else grupos.set(prov, [m]);
+  }
+  const invertidoDe = (arr: MovimientoStockComercial[]) =>
+    arr.filter((m) => m.tipo === 'ingreso').reduce((s, m) => s + toNumber(m.precioCompra) * toNumber(m.cantidad), 0);
+  const proveedoresOrden = Array.from(grupos.keys()).sort(
+    (a, b) => invertidoDe(grupos.get(b)!) - invertidoDe(grupos.get(a)!) || collator.compare(a, b)
+  );
+
+  const columnStyles = {
+    0: { cellWidth: 26 },
+    1: { cellWidth: 74 },
+    2: { cellWidth: 24 },
+    3: { halign: 'right' as const, cellWidth: 20 },
+    4: { cellWidth: 40 },
+    5: { halign: 'right' as const, cellWidth: 32 },
+    6: { halign: 'right' as const, cellWidth: 34 },
+    7: { cellWidth: 27 },
+  };
+  const head = [['Fecha', 'Producto', 'Tipo', 'Cant.', 'Comprobante', 'Precio u.', 'Total', 'Usuario']];
+  const toRow = (m: MovimientoStockComercial) => {
+    const comprobante = [m.comprobantePrefijo, m.comprobanteNumero].filter(Boolean).join('-') || '-';
+    const esCompra = m.tipo === 'ingreso';
+    const total = esCompra ? toNumber(m.precioCompra) * toNumber(m.cantidad) : 0;
+    return [
+      date(m.fechaComprobante || m.createdAt),
+      `${m.producto ?? '-'}${m.plu ? ` (${m.plu})` : ''}`,
+      tipoMovLabel(m.tipo),
+      String(toNumber(m.cantidad)),
+      comprobante,
+      esCompra && m.precioCompra != null ? pesos(m.precioCompra) : '-',
+      esCompra && m.precioCompra != null ? pesos(total) : '-',
+      m.usuario?.username ?? '-',
+    ];
+  };
+
+  let y = 55;
+  proveedoresOrden.forEach((prov, i) => {
+    const filas = grupos.get(prov)!;
+    const invertido = invertidoDe(filas);
+    y = i === 0 ? y : afterTableY(doc, y) + 10;
+    y = drawSectionBar(doc, `${prov} — ${filas.length} mov. · invertido ${pesos(invertido)}`, y);
+    autoTable(doc, {
+      ...tableTheme,
+      startY: y,
+      head,
+      body: filas.map(toRow),
+      columnStyles,
+    });
   });
+
+  if (movimientos.length === 0) {
+    drawSectionBar(doc, 'Sin movimientos', 55);
+  }
 
   savePdf(doc, filename);
 };
