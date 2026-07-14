@@ -1,6 +1,6 @@
 // src/components/Modals/StockAlLunesModal.tsx
 import React from 'react';
-import { StockAlCorteResponse } from '../../types';
+import { StockAlCorteResponse } from '../../../types';
 
 interface StockAlLunesModalProps {
   data: StockAlCorteResponse | null;

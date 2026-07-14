@@ -1,8 +1,8 @@
-// src/hooks/useHistorial.ts
+// src/contextos/inventario-quesos/hooks/useHistorial.ts
 import { useState, useMemo } from 'react';
-import { Unidad, FiltroHistorial } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
+import { Unidad, FiltroHistorial } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
 
 export const useHistorial = (apiFetch: any) => {
   const {

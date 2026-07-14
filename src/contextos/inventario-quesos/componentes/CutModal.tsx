@@ -1,7 +1,7 @@
 // src/components/Modals/CutModal.tsx
 import React, { useState } from 'react';
-import { Unidad, Motivo } from '../../types';
-import { decodificarBarcode } from '../../utils/barcode';
+import { Unidad, Motivo } from '../../../types';
+import { decodificarBarcode } from '../../../utils/barcode';
 
 interface CutModalProps {
   unidad: Unidad | null;

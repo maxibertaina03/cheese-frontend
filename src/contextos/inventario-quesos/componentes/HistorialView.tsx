@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { TipoQueso, Unidad, User } from '../../types';
-import { UnidadCard } from '../Inventory/UnidadCard';
-import { DeleteConfirmModal } from '../Admin/DeleteConfirmModal';
-import { usePermissions } from '../../utils/permissions';
+import { TipoQueso, Unidad, User } from '../../../types';
+import { UnidadCard } from './UnidadCard';
+import { DeleteConfirmModal } from '../../../components/Admin/DeleteConfirmModal';
+import { usePermissions } from '../../../utils/permissions';
 
 interface HistorialViewProps {
   user: User | null;

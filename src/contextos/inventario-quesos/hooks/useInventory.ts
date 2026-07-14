@@ -1,8 +1,8 @@
-// src/hooks/useInventory.ts
-import { Unidad, Producto, Motivo } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+// src/contextos/inventario-quesos/hooks/useInventory.ts
+import { Unidad, Producto, Motivo } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useInventory = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

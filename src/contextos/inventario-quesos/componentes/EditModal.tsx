@@ -1,6 +1,6 @@
 // src/components/Modals/EditModal.tsx
 import React, { useState } from 'react';
-import { Unidad } from '../../types';
+import { Unidad } from '../../../types';
 
 interface EditModalProps {
   unidad: Unidad | null;

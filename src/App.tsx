@@ -5,19 +5,19 @@ import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData, 
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './hooks/useAuth';
 import { canAccess } from './utils/permissions';
-import { useInventory } from './hooks/useInventory';
-import { useHistorial } from './hooks/useHistorial';
-import { useAdmin } from './hooks/useAdmin';
+import { useInventory } from './contextos/inventario-quesos/hooks/useInventory';
+import { useHistorial } from './contextos/inventario-quesos/hooks/useHistorial';
+import { useAdmin } from './contextos/inventario-quesos/hooks/useAdmin';
 import { Login } from './components/Auth/Login';
 import { Header } from './components/Layout/Header';
 import { Alerts } from './components/Layout/Alerts';
-import { InventoryForm } from './components/Inventory/InventoryForm';
-import { InventoryList } from './components/Inventory/InventoryList';
-import { EditModal } from './components/Modals/EditModal';
-import { CutModal } from './components/Modals/CutModal';
-import { StockAlLunesModal } from './components/Modals/StockAlLunesModal';
+import { InventoryForm } from './contextos/inventario-quesos/componentes/InventoryForm';
+import { InventoryList } from './contextos/inventario-quesos/componentes/InventoryList';
+import { EditModal } from './contextos/inventario-quesos/componentes/EditModal';
+import { CutModal } from './contextos/inventario-quesos/componentes/CutModal';
+import { StockAlLunesModal } from './contextos/inventario-quesos/componentes/StockAlLunesModal';
 import { DeleteConfirmModal } from './components/Admin/DeleteConfirmModal';
-import { HistorialView } from './components/History/HistorialView';
+import { HistorialView } from './contextos/inventario-quesos/componentes/HistorialView';
 import { AdminPanel } from './components/Admin/AdminPanel';
 import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';

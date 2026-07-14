@@ -1,8 +1,8 @@
 // src/components/Inventory/UnidadCard.tsx - Versión corregida
 import React from 'react';
-import { Unidad, User } from '../../types';
-import { formatDate } from '../../utils/dates';
-import { usePermissions } from '../../utils/permissions';
+import { Unidad, User } from '../../../types';
+import { formatDate } from '../../../utils/dates';
+import { usePermissions } from '../../../utils/permissions';
 
 interface UnidadCardProps {
   unidad: Unidad;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { TipoQueso, Unidad, User } from '../../types';
+import { TipoQueso, Unidad, User } from '../../../types';
 import { UnidadCard } from './UnidadCard';
-import { canAccess } from '../../utils/permissions';
+import { canAccess } from '../../../utils/permissions';
 
 interface InventoryListProps {
   unidades: Unidad[];

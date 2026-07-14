@@ -1,7 +1,7 @@
 // src/components/Inventory/InventoryForm.tsx
 import React, { useState } from 'react';  // ← Remover useEffect
-import { Producto, Motivo } from '../../types';
-import { decodificarBarcode } from '../../utils/barcode';
+import { Producto, Motivo } from '../../../types';
+import { decodificarBarcode } from '../../../utils/barcode';
 
 interface InventoryFormProps {
   productos: Producto[];
