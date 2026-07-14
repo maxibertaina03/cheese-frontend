@@ -1,4 +1,4 @@
-// src/hooks/useNotasCredito.ts
+// src/contextos/facturacion/hooks/useNotasCredito.ts
 import { NotaCredito, CreateNotaCreditoData } from '../../../types';
 import { apiService } from '../../../services/api';
 import { useColeccion } from '../../../compartido/hooks/useColeccion';

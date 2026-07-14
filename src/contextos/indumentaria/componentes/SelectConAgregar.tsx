@@ -1,42 +1,49 @@
-// src/components/Indumentaria/ProveedorSelect.tsx
-// Selector de proveedor con opcion de crear uno nuevo en linea (como SelectConAgregar,
-// pero crea el registro real via API y selecciona el id devuelto).
+// src/contextos/indumentaria/componentes/SelectConAgregar.tsx
 import React, { useState } from 'react';
-import { Proveedor } from '../../types';
+
+export interface Opcion {
+  value: string;
+  label: string;
+}
 
 interface Props {
-  proveedores: Proveedor[];
-  value: number | null;
-  onChange: (id: number | null) => void;
-  // Crea un proveedor por nombre y devuelve el creado (o null si fallo).
-  onCreateProveedor?: (nombre: string) => Promise<Proveedor | null>;
+  value: string;
+  onChange: (value: string) => void;
+  options: Opcion[];
+  placeholder?: string;
+  addLabel?: string;
+  inputPlaceholder?: string;
   required?: boolean;
+  maxLength?: number;
 }
 
 const ADD_VALUE = '__add__';
 
-export const ProveedorSelect: React.FC<Props> = ({
-  proveedores,
+export const SelectConAgregar: React.FC<Props> = ({
   value,
   onChange,
-  onCreateProveedor,
+  options,
+  placeholder = 'Seleccionar...',
+  addLabel = '➕ Agregar nueva opción...',
+  inputPlaceholder = 'Escribí la nueva opción',
   required,
+  maxLength,
 }) => {
   const [agregando, setAgregando] = useState(false);
   const [nuevo, setNuevo] = useState('');
-  const [creando, setCreando] = useState(false);
 
-  const confirmarAgregado = async () => {
+  // Si el valor actual no está entre las opciones (p. ej. un valor cargado
+  // previamente), lo agregamos para que aparezca seleccionado igual.
+  const valorEnOpciones = value !== '' && options.some((o) => o.value === value);
+  const opcionesVisibles =
+    value === '' || valorEnOpciones ? options : [...options, { value, label: value }];
+
+  const confirmarAgregado = () => {
     const limpio = nuevo.trim();
-    if (!limpio || !onCreateProveedor) return;
-    setCreando(true);
-    const creado = await onCreateProveedor(limpio);
-    setCreando(false);
-    if (creado) {
-      onChange(creado.id);
-      setNuevo('');
-      setAgregando(false);
-    }
+    if (!limpio) return;
+    onChange(limpio);
+    setNuevo('');
+    setAgregando(false);
   };
 
   if (agregando) {
@@ -46,10 +53,9 @@ export const ProveedorSelect: React.FC<Props> = ({
           className="form-input"
           autoFocus
           value={nuevo}
-          maxLength={150}
-          disabled={creando}
+          maxLength={maxLength}
           onChange={(e) => setNuevo(e.target.value)}
-          placeholder="Nombre del proveedor"
+          placeholder={inputPlaceholder}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -65,16 +71,14 @@ export const ProveedorSelect: React.FC<Props> = ({
           type="button"
           className="btn-confirm"
           style={{ whiteSpace: 'nowrap', padding: '0 1rem' }}
-          disabled={creando || !nuevo.trim()}
           onClick={confirmarAgregado}
         >
-          {creando ? 'Creando...' : 'Agregar'}
+          Agregar
         </button>
         <button
           type="button"
           className="btn-cancel"
           style={{ whiteSpace: 'nowrap', padding: '0 1rem' }}
-          disabled={creando}
           onClick={() => {
             setAgregando(false);
             setNuevo('');
@@ -89,7 +93,7 @@ export const ProveedorSelect: React.FC<Props> = ({
   return (
     <select
       className="form-select"
-      value={value ?? ''}
+      value={value}
       required={required}
       onChange={(e) => {
         if (e.target.value === ADD_VALUE) {
@@ -97,16 +101,16 @@ export const ProveedorSelect: React.FC<Props> = ({
           setAgregando(true);
           return;
         }
-        onChange(e.target.value ? Number(e.target.value) : null);
+        onChange(e.target.value);
       }}
     >
-      <option value="">Seleccionar proveedor...</option>
-      {proveedores.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.nombre}
+      <option value="">{placeholder}</option>
+      {opcionesVisibles.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
         </option>
       ))}
-      {onCreateProveedor && <option value={ADD_VALUE}>➕ Agregar nuevo proveedor...</option>}
+      <option value={ADD_VALUE}>{addLabel}</option>
     </select>
   );
 };

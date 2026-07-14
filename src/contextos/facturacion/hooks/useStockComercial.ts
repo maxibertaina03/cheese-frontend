@@ -1,4 +1,4 @@
-// src/hooks/useStockComercial.ts
+// src/contextos/facturacion/hooks/useStockComercial.ts
 import { StockComercialItem, CargaStockComercial, MovimientoStockComercial } from '../../../types';
 import { apiService } from '../../../services/api';
 import { useColeccion } from '../../../compartido/hooks/useColeccion';

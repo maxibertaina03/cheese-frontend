@@ -1,4 +1,4 @@
-// src/components/Facturacion/MovimientosStockManager.tsx
+// src/contextos/facturacion/componentes/MovimientosStockManager.tsx
 import React, { useMemo, useState } from 'react';
 import { MovimientoStockComercial } from '../../../types';
 import { exportMovimientosStockPdfLocal } from '../../../utils/pdfExport';

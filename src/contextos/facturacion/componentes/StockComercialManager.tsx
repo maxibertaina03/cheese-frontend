@@ -1,4 +1,4 @@
-// src/components/Facturacion/StockComercialManager.tsx
+// src/contextos/facturacion/componentes/StockComercialManager.tsx
 import React, { useState } from 'react';
 import { StockComercialItem, Proveedor, CargaStockComercial } from '../../../types';
 import { exportStockComercialPdfLocal } from '../../../utils/pdfExport';

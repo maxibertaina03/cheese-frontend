@@ -1,4 +1,4 @@
-// src/hooks/useNotasPedido.ts
+// src/contextos/facturacion/hooks/useNotasPedido.ts
 import { NotaPedido, CreateNotaPedidoData } from '../../../types';
 import { apiService } from '../../../services/api';
 import { useColeccion } from '../../../compartido/hooks/useColeccion';

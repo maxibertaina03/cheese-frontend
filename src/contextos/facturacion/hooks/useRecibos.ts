@@ -1,4 +1,4 @@
-// src/hooks/useRecibos.ts
+// src/contextos/facturacion/hooks/useRecibos.ts
 import { Recibo, CreateReciboData } from '../../../types';
 import { apiService } from '../../../services/api';
 import { useColeccion } from '../../../compartido/hooks/useColeccion';

@@ -1,4 +1,4 @@
-// src/components/Facturacion/PreciosManager.tsx
+// src/contextos/facturacion/componentes/PreciosManager.tsx
 import React, { useState } from 'react';
 import { Producto, Elemento } from '../../../types';
 

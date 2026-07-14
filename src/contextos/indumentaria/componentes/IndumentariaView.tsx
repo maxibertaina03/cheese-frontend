@@ -1,12 +1,12 @@
-// src/components/Indumentaria/IndumentariaView.tsx
+// src/contextos/indumentaria/componentes/IndumentariaView.tsx
 import React, { useMemo, useState } from 'react';
-import { Indumentaria, MovimientoIndumentaria, Proveedor, User } from '../../types';
+import { Indumentaria, MovimientoIndumentaria, Proveedor, User } from '../../../types';
 import { IndumentariaForm } from './IndumentariaForm';
 import { IndumentariaList } from './IndumentariaList';
 import { MovimientoModal } from './MovimientoModal';
 import { MovimientosModal } from './MovimientosModal';
-import { usePermissions } from '../../utils/permissions';
-import { exportIndumentariaPdfLocal } from '../../utils/pdfExport';
+import { usePermissions } from '../../../utils/permissions';
+import { exportIndumentariaPdfLocal } from '../../../utils/pdfExport';
 
 interface Props {
   user: User | null;

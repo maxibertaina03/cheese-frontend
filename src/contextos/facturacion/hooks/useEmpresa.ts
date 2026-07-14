@@ -1,4 +1,4 @@
-// src/hooks/useEmpresa.ts
+// src/contextos/facturacion/hooks/useEmpresa.ts
 import { useCallback, useState } from 'react';
 import { Empresa } from '../../../types';
 import { apiService } from '../../../services/api';

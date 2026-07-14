@@ -1,4 +1,4 @@
-// src/components/Facturacion/RecibosManager.tsx
+// src/contextos/facturacion/componentes/RecibosManager.tsx
 import React, { useMemo, useState } from 'react';
 import { Cliente, NotaPedido, Recibo, CreateReciboData } from '../../../types';
 import { NuevoReciboModal } from './NuevoReciboModal';

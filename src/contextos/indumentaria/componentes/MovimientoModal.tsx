@@ -1,6 +1,6 @@
-// src/components/Indumentaria/MovimientoModal.tsx
+// src/contextos/indumentaria/componentes/MovimientoModal.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Indumentaria, Proveedor } from '../../types';
+import { Indumentaria, Proveedor } from '../../../types';
 import { ProveedorSelect } from './ProveedorSelect';
 
 type IngresoData = {

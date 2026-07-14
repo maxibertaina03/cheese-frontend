@@ -1,4 +1,4 @@
-// src/components/Facturacion/FiltroComprobantes.tsx
+// src/contextos/facturacion/componentes/FiltroComprobantes.tsx
 import React, { useState } from 'react';
 
 // Hook de filtro por texto + rango de fechas, compartido por los listados de comprobantes.

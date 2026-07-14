@@ -1,4 +1,4 @@
-// src/components/Facturacion/FacturacionView.tsx
+// src/contextos/facturacion/componentes/FacturacionView.tsx
 import React, { useState } from 'react';
 import {
   Cliente,

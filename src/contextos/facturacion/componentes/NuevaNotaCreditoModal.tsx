@@ -1,4 +1,4 @@
-// src/components/Facturacion/NuevaNotaCreditoModal.tsx
+// src/contextos/facturacion/componentes/NuevaNotaCreditoModal.tsx
 import React, { useMemo, useState } from 'react';
 import { NotaPedido, NotaParaDevolver, CreateNotaCreditoData } from '../../../types';
 

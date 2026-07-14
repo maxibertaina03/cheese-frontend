@@ -1,7 +1,7 @@
-// src/components/Indumentaria/MovimientosModal.tsx
+// src/contextos/indumentaria/componentes/MovimientosModal.tsx
 import React from 'react';
-import { Indumentaria, MovimientoIndumentaria } from '../../types';
-import { formatDate } from '../../utils/dates';
+import { Indumentaria, MovimientoIndumentaria } from '../../../types';
+import { formatDate } from '../../../utils/dates';
 
 interface Props {
   isOpen: boolean;

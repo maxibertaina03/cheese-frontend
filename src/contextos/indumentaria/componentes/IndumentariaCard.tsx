@@ -1,7 +1,7 @@
-// src/components/Indumentaria/IndumentariaCard.tsx
+// src/contextos/indumentaria/componentes/IndumentariaCard.tsx
 import React from 'react';
-import { Indumentaria, User } from '../../types';
-import { usePermissions } from '../../utils/permissions';
+import { Indumentaria, User } from '../../../types';
+import { usePermissions } from '../../../utils/permissions';
 
 interface Props {
   prenda: Indumentaria;

@@ -1,6 +1,6 @@
-// src/components/Indumentaria/IndumentariaList.tsx
+// src/contextos/indumentaria/componentes/IndumentariaList.tsx
 import React from 'react';
-import { Indumentaria, User } from '../../types';
+import { Indumentaria, User } from '../../../types';
 import { IndumentariaCard } from './IndumentariaCard';
 
 interface Props {

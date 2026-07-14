@@ -1,6 +1,6 @@
-// src/components/Indumentaria/IndumentariaForm.tsx
+// src/contextos/indumentaria/componentes/IndumentariaForm.tsx
 import React, { useMemo, useState } from 'react';
-import { Indumentaria, Proveedor } from '../../types';
+import { Indumentaria, Proveedor } from '../../../types';
 import { Opcion, SelectConAgregar } from './SelectConAgregar';
 import { ProveedorSelect } from './ProveedorSelect';
 

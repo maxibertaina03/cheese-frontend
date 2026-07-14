@@ -1,4 +1,4 @@
-// src/components/Facturacion/ClientesManager.tsx
+// src/contextos/facturacion/componentes/ClientesManager.tsx
 import React, { useEffect, useState } from 'react';
 import { Cliente } from '../../../types';
 import { DeleteConfirmModal } from '../../../components/Admin/DeleteConfirmModal';

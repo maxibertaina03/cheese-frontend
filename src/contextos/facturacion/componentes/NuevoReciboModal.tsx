@@ -1,4 +1,4 @@
-// src/components/Facturacion/NuevoReciboModal.tsx
+// src/contextos/facturacion/componentes/NuevoReciboModal.tsx
 import React, { useMemo, useState } from 'react';
 import { Cliente, NotaPedido, MedioPago, CreateReciboData } from '../../../types';
 

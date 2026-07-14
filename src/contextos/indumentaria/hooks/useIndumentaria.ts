@@ -1,9 +1,9 @@
-// src/hooks/useIndumentaria.ts
+// src/contextos/indumentaria/hooks/useIndumentaria.ts
 import { useCallback } from 'react';
-import { Indumentaria, MovimientoIndumentaria } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+import { Indumentaria, MovimientoIndumentaria } from '../../../types';
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export const useIndumentaria = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

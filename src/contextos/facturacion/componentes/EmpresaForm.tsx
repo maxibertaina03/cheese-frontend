@@ -1,4 +1,4 @@
-// src/components/Facturacion/EmpresaForm.tsx
+// src/contextos/facturacion/componentes/EmpresaForm.tsx
 import React, { useEffect, useState } from 'react';
 import { Empresa } from '../../../types';
 

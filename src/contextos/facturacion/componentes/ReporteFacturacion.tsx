@@ -1,4 +1,4 @@
-// src/components/Facturacion/ReporteFacturacion.tsx
+// src/contextos/facturacion/componentes/ReporteFacturacion.tsx
 import React, { useCallback, useEffect, useState } from 'react';
 import { ReporteFacturacion as Reporte } from '../../../types';
 import { apiService } from '../../../services/api';

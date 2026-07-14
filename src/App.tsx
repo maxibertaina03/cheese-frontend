@@ -23,7 +23,7 @@ import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
 import { useUsuarios } from './hooks/useUsuarios';
 import { useElementos } from './hooks/useElementos';
 import { ElementosView } from './components/Elementos/ElementosView';
-import { useIndumentaria } from './hooks/useIndumentaria';
+import { useIndumentaria } from './contextos/indumentaria/hooks/useIndumentaria';
 import { useProveedores } from './hooks/useProveedores';
 import { useClientes } from './contextos/facturacion/hooks/useClientes';
 import { useEmpresa } from './contextos/facturacion/hooks/useEmpresa';
@@ -31,7 +31,7 @@ import { useNotasPedido } from './contextos/facturacion/hooks/useNotasPedido';
 import { useStockComercial } from './contextos/facturacion/hooks/useStockComercial';
 import { useRecibos } from './contextos/facturacion/hooks/useRecibos';
 import { useNotasCredito } from './contextos/facturacion/hooks/useNotasCredito';
-import { IndumentariaView } from './components/Indumentaria/IndumentariaView';
+import { IndumentariaView } from './contextos/indumentaria/componentes/IndumentariaView';
 import { FacturacionView } from './contextos/facturacion/componentes/FacturacionView';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
 

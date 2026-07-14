@@ -1,4 +1,4 @@
-// src/hooks/useClientes.ts
+// src/contextos/facturacion/hooks/useClientes.ts
 import { Cliente } from '../../../types';
 import { apiService } from '../../../services/api';
 import { useColeccion } from '../../../compartido/hooks/useColeccion';
