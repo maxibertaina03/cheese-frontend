@@ -2,12 +2,13 @@
 import { useCallback, useState } from 'react';
 import { Empresa } from '../types';
 import { apiService } from '../services/api';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useEmpresa = (apiFetch: any) => {
+  // La empresa es un singleton (un objeto, no una colección), por eso no usa useColeccion.
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
   const fetchEmpresa = useCallback(async () => {
     try {
@@ -21,26 +22,12 @@ export const useEmpresa = (apiFetch: any) => {
   }, [apiFetch]);
 
   const saveEmpresa = async (data: Partial<Empresa>) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.updateEmpresa(apiFetch, data);
-      if (response.ok) {
-        const saved = await response.json();
-        setEmpresa(saved);
-        setSuccess('Datos de la empresa guardados correctamente');
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al guardar datos de la empresa');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
+    const resultado = await ejecutar<Empresa>(() => apiService.updateEmpresa(apiFetch, data), {
+      mensajeExito: 'Datos de la empresa guardados correctamente',
+      mensajeErrorDefault: 'Error al guardar datos de la empresa',
+    });
+    if (resultado.success && resultado.data) setEmpresa(resultado.data);
+    return { success: resultado.success };
   };
 
   return {

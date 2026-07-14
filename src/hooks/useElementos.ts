@@ -1,34 +1,20 @@
 // src/hooks/useElementos.ts
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Elemento, MovimientoElemento } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useElementos = (apiFetch: any) => {
-  const [elementos, setElementos] = useState<Elemento[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchElementos = useCallback(async () => {
-    try {
-      const response = await apiService.getElementos(apiFetch);
-      const data = await response.json();
-      
-      // 🔧 FIX: Validar que data sea un array
-      if (Array.isArray(data)) {
-        setElementos(data);
-      } else {
-        console.error('API devolvió datos no válidos:', data);
-        setElementos([]); // ← Mantener como array vacío
-        setError('Error: formato de datos inválido');
-      }
-    } catch (err) {
-      console.error('Error al cargar elementos:', err);
-      setElementos([]); // 🔧 FIX: En caso de error, mantener array vacío
-      setError('Error al cargar elementos');
-    }
-  }, [apiFetch]);
+  const { items: elementos, refrescar: fetchElementos } = useColeccion<Elemento>(
+    () => apiService.getElementos(apiFetch),
+    { mensajeError: 'Error al cargar elementos', onError: setError }
+  );
 
+  // Trae los movimientos de un elemento puntual y los devuelve (no los guarda en estado).
   const fetchMovimientos = useCallback(
     async (elementoId: number): Promise<MovimientoElemento[]> => {
       try {
@@ -39,134 +25,55 @@ export const useElementos = (apiFetch: any) => {
           return [];
         }
         const data = await response.json();
-        return Array.isArray(data) ? data : []; // 🔧 FIX: Validar array
+        return Array.isArray(data) ? data : [];
       } catch (err) {
         setError('Error de conexión con el servidor');
         return [];
       }
     },
-    [apiFetch]
+    [apiFetch, setError]
   );
 
-  const createElemento = async (data: {
-    nombre: string;
-    cantidadTotal: number;
-    descripcion?: string | null;
-  }) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.createElemento(apiFetch, data);
-      if (response.ok) {
-        setSuccess('Elemento creado correctamente');
-        await fetchElementos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al crear elemento');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createElemento = (data: { nombre: string; cantidadTotal: number; descripcion?: string | null }) =>
+    ejecutar(() => apiService.createElemento(apiFetch, data), {
+      mensajeExito: 'Elemento creado correctamente',
+      mensajeErrorDefault: 'Error al crear elemento',
+      alTerminar: fetchElementos,
+    });
 
-  const updateElemento = async (
+  const updateElemento = (
     elementoId: number,
     data: { nombre?: string; descripcion?: string | null; precioUnitario?: number; esVendible?: boolean }
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.updateElemento(apiFetch, elementoId, data);
-      if (response.ok) {
-        setSuccess('Elemento actualizado correctamente');
-        await fetchElementos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al actualizar elemento');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  ) =>
+    ejecutar(() => apiService.updateElemento(apiFetch, elementoId, data), {
+      mensajeExito: 'Elemento actualizado correctamente',
+      mensajeErrorDefault: 'Error al actualizar elemento',
+      alTerminar: fetchElementos,
+    });
 
-  const deleteElemento = async (elementoId: number) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.deleteElemento(apiFetch, elementoId);
-      if (response.ok) {
-        setSuccess('Elemento eliminado correctamente');
-        await fetchElementos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al eliminar elemento');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteElemento = (elementoId: number) =>
+    ejecutar(() => apiService.deleteElemento(apiFetch, elementoId), {
+      mensajeExito: 'Elemento eliminado correctamente',
+      mensajeErrorDefault: 'Error al eliminar elemento',
+      alTerminar: fetchElementos,
+    });
 
-  const registrarIngreso = async (elementoId: number, data: { cantidad: number; observaciones?: string | null }) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.elementoIngreso(apiFetch, elementoId, data);
-      if (response.ok) {
-        setSuccess('Ingreso registrado correctamente');
-        await fetchElementos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al registrar ingreso');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const registrarIngreso = (elementoId: number, data: { cantidad: number; observaciones?: string | null }) =>
+    ejecutar(() => apiService.elementoIngreso(apiFetch, elementoId, data), {
+      mensajeExito: 'Ingreso registrado correctamente',
+      mensajeErrorDefault: 'Error al registrar ingreso',
+      alTerminar: fetchElementos,
+    });
 
-  const registrarEgreso = async (
+  const registrarEgreso = (
     elementoId: number,
     data: { cantidad: number; motivoId?: number | null; observaciones?: string | null }
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.elementoEgreso(apiFetch, elementoId, data);
-      if (response.ok) {
-        setSuccess('Egreso registrado correctamente');
-        await fetchElementos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al registrar egreso');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  ) =>
+    ejecutar(() => apiService.elementoEgreso(apiFetch, elementoId, data), {
+      mensajeExito: 'Egreso registrado correctamente',
+      mensajeErrorDefault: 'Error al registrar egreso',
+      alTerminar: fetchElementos,
+    });
 
   return {
     elementos,

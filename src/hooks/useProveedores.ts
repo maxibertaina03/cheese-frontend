@@ -1,92 +1,42 @@
 // src/hooks/useProveedores.ts
-import { useCallback, useState } from 'react';
 import { Proveedor } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useProveedores = (apiFetch: any) => {
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchProveedores = useCallback(async () => {
-    try {
-      const response = await apiService.getProveedores(apiFetch);
-      const data = await response.json();
-      setProveedores(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar proveedores:', err);
-      setProveedores([]);
-      setError('Error al cargar proveedores');
-    }
-  }, [apiFetch]);
+  const { items: proveedores, refrescar: fetchProveedores } = useColeccion<Proveedor>(
+    () => apiService.getProveedores(apiFetch),
+    { mensajeError: 'Error al cargar proveedores', onError: setError }
+  );
 
   const createProveedor = async (data: Partial<Proveedor>) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.createProveedor(apiFetch, data);
-      if (response.ok) {
-        const proveedor = (await response.json()) as Proveedor;
-        setSuccess('Proveedor creado correctamente');
-        await fetchProveedores();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true, proveedor };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al crear proveedor');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
+    const resultado = await ejecutar<Proveedor>(() => apiService.createProveedor(apiFetch, data), {
+      mensajeExito: 'Proveedor creado correctamente',
+      mensajeErrorDefault: 'Error al crear proveedor',
+      alTerminar: fetchProveedores,
+    });
+    return resultado.success
+      ? { success: true, proveedor: resultado.data }
+      : { success: false };
   };
 
-  const updateProveedor = async (id: number, data: Partial<Proveedor>) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.updateProveedor(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Proveedor actualizado correctamente');
-        await fetchProveedores();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al actualizar proveedor');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateProveedor = (id: number, data: Partial<Proveedor>) =>
+    ejecutar(() => apiService.updateProveedor(apiFetch, id, data), {
+      mensajeExito: 'Proveedor actualizado correctamente',
+      mensajeErrorDefault: 'Error al actualizar proveedor',
+      alTerminar: fetchProveedores,
+    });
 
-  const deleteProveedor = async (id: number) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.deleteProveedor(apiFetch, id);
-      if (response.ok) {
-        setSuccess('Proveedor eliminado correctamente');
-        await fetchProveedores();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al eliminar proveedor');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteProveedor = (id: number) =>
+    ejecutar(() => apiService.deleteProveedor(apiFetch, id), {
+      mensajeExito: 'Proveedor eliminado correctamente',
+      mensajeErrorDefault: 'Error al eliminar proveedor',
+      alTerminar: fetchProveedores,
+    });
 
   return {
     proveedores,

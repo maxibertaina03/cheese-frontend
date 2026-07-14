@@ -1,92 +1,37 @@
 // src/hooks/useAdmin.ts
-import { useState, useCallback } from 'react';
 import { Producto, CreateProductoData } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useAdmin = (apiFetch: any) => {
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchProductos = useCallback(async () => {
-    try {
-      const response = await apiService.getProductos(apiFetch);
-      const data = await response.json();
-      setProductos(data);
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-    }
-  }, [apiFetch]);
+  const { items: productos, refrescar: fetchProductos } = useColeccion<Producto>(() =>
+    apiService.getProductos(apiFetch)
+  );
 
-  const createProducto = async (data: CreateProductoData) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.createProducto(apiFetch, data);
-      if (response.ok) {
-        setSuccess('Producto creado correctamente');
-        await fetchProductos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al crear producto');
-        return { success: false };
-      }
-    } catch (error) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createProducto = (data: CreateProductoData) =>
+    ejecutar(() => apiService.createProducto(apiFetch, data), {
+      mensajeExito: 'Producto creado correctamente',
+      mensajeErrorDefault: 'Error al crear producto',
+      alTerminar: fetchProductos,
+    });
 
-  const updateProducto = async (id: number, data: Partial<CreateProductoData>) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.updateProducto(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Producto actualizado correctamente');
-        await fetchProductos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al actualizar producto');
-        return { success: false };
-      }
-    } catch (error) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateProducto = (id: number, data: Partial<CreateProductoData>) =>
+    ejecutar(() => apiService.updateProducto(apiFetch, id, data), {
+      mensajeExito: 'Producto actualizado correctamente',
+      mensajeErrorDefault: 'Error al actualizar producto',
+      alTerminar: fetchProductos,
+    });
 
-  const deleteProducto = async (id: number) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.deleteProducto(apiFetch, id);
-      if (response.ok) {
-        setSuccess('Producto eliminado correctamente');
-        await fetchProductos();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al eliminar producto');
-        return { success: false };
-      }
-    } catch (error) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteProducto = (id: number) =>
+    ejecutar(() => apiService.deleteProducto(apiFetch, id), {
+      mensajeExito: 'Producto eliminado correctamente',
+      mensajeErrorDefault: 'Error al eliminar producto',
+      alTerminar: fetchProductos,
+    });
 
   return {
     productos,

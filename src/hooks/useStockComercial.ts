@@ -1,58 +1,29 @@
 // src/hooks/useStockComercial.ts
-import { useCallback, useState } from 'react';
 import { StockComercialItem, CargaStockComercial, MovimientoStockComercial } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useStockComercial = (apiFetch: any) => {
-  const [stock, setStock] = useState<StockComercialItem[]>([]);
-  const [movimientos, setMovimientos] = useState<MovimientoStockComercial[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchStock = useCallback(async () => {
-    try {
-      const response = await apiService.getStockComercial(apiFetch);
-      const data = await response.json();
-      setStock(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar stock comercial:', err);
-      setStock([]);
-    }
-  }, [apiFetch]);
+  const { items: stock, refrescar: fetchStock } = useColeccion<StockComercialItem>(() =>
+    apiService.getStockComercial(apiFetch)
+  );
 
-  const fetchMovimientos = useCallback(async () => {
-    try {
-      const response = await apiService.getMovimientosStockComercial(apiFetch);
-      const data = await response.json();
-      setMovimientos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar movimientos de stock comercial:', err);
-      setMovimientos([]);
-    }
-  }, [apiFetch]);
+  const { items: movimientos, refrescar: fetchMovimientos } = useColeccion<MovimientoStockComercial>(
+    () => apiService.getMovimientosStockComercial(apiFetch)
+  );
 
-  const ingresar = async (productoId: number, data: CargaStockComercial) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.ingresarStockComercial(apiFetch, productoId, data);
-      if (response.ok) {
-        setSuccess('Stock cargado correctamente');
+  const ingresar = (productoId: number, data: CargaStockComercial) =>
+    ejecutar(() => apiService.ingresarStockComercial(apiFetch, productoId, data), {
+      mensajeExito: 'Stock cargado correctamente',
+      mensajeErrorDefault: 'Error al cargar stock',
+      alTerminar: async () => {
         await Promise.all([fetchStock(), fetchMovimientos()]);
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al cargar stock');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+      },
+    });
 
   return {
     stock,

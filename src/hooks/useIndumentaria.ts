@@ -1,32 +1,20 @@
 // src/hooks/useIndumentaria.ts
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Indumentaria, MovimientoIndumentaria } from '../types';
 import { apiService } from '../services/api';
+import { useColeccion } from '../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
 
 export const useIndumentaria = (apiFetch: any) => {
-  const [indumentaria, setIndumentaria] = useState<Indumentaria[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =
+    useEstadoOperacion();
 
-  const fetchIndumentaria = useCallback(async () => {
-    try {
-      const response = await apiService.getIndumentaria(apiFetch);
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setIndumentaria(data);
-      } else {
-        console.error('API devolvió datos no válidos:', data);
-        setIndumentaria([]);
-        setError('Error: formato de datos inválido');
-      }
-    } catch (err) {
-      console.error('Error al cargar indumentaria:', err);
-      setIndumentaria([]);
-      setError('Error al cargar indumentaria');
-    }
-  }, [apiFetch]);
+  const { items: indumentaria, refrescar: fetchIndumentaria } = useColeccion<Indumentaria>(
+    () => apiService.getIndumentaria(apiFetch),
+    { mensajeError: 'Error al cargar indumentaria', onError: setError }
+  );
 
+  // Trae los movimientos de una prenda puntual y los devuelve (no los guarda en estado).
   const fetchMovimientos = useCallback(
     async (id: number): Promise<MovimientoIndumentaria[]> => {
       try {
@@ -43,149 +31,59 @@ export const useIndumentaria = (apiFetch: any) => {
         return [];
       }
     },
-    [apiFetch]
+    [apiFetch, setError]
   );
 
-  const createIndumentaria = async (data: any) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.createIndumentaria(apiFetch, data);
-      if (response.ok) {
-        setSuccess('Prenda creada correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al crear prenda');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createIndumentaria = (data: any) =>
+    ejecutar(() => apiService.createIndumentaria(apiFetch, data), {
+      mensajeExito: 'Prenda creada correctamente',
+      mensajeErrorDefault: 'Error al crear prenda',
+      alTerminar: fetchIndumentaria,
+    });
 
-  const updateIndumentaria = async (id: number, data: any) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.updateIndumentaria(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Prenda actualizada correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al actualizar prenda');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateIndumentaria = (id: number, data: any) =>
+    ejecutar(() => apiService.updateIndumentaria(apiFetch, id, data), {
+      mensajeExito: 'Prenda actualizada correctamente',
+      mensajeErrorDefault: 'Error al actualizar prenda',
+      alTerminar: fetchIndumentaria,
+    });
 
-  const deleteIndumentaria = async (id: number) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.deleteIndumentaria(apiFetch, id);
-      if (response.ok) {
-        setSuccess('Prenda eliminada correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al eliminar prenda');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteIndumentaria = (id: number) =>
+    ejecutar(() => apiService.deleteIndumentaria(apiFetch, id), {
+      mensajeExito: 'Prenda eliminada correctamente',
+      mensajeErrorDefault: 'Error al eliminar prenda',
+      alTerminar: fetchIndumentaria,
+    });
 
-  const registrarIngreso = async (
+  const registrarIngreso = (
     id: number,
     data: { cantidad: number; proveedorId?: number | null; documentoReferencia?: string | null; observaciones?: string | null }
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.indumentariaIngreso(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Ingreso registrado correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al registrar ingreso');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  ) =>
+    ejecutar(() => apiService.indumentariaIngreso(apiFetch, id, data), {
+      mensajeExito: 'Ingreso registrado correctamente',
+      mensajeErrorDefault: 'Error al registrar ingreso',
+      alTerminar: fetchIndumentaria,
+    });
 
-  const registrarEgreso = async (
+  const registrarEgreso = (
     id: number,
     data: { cantidad: number; destino: string; observaciones?: string | null }
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.indumentariaEgreso(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Entrega registrada correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al registrar entrega');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  ) =>
+    ejecutar(() => apiService.indumentariaEgreso(apiFetch, id, data), {
+      mensajeExito: 'Entrega registrada correctamente',
+      mensajeErrorDefault: 'Error al registrar entrega',
+      alTerminar: fetchIndumentaria,
+    });
 
-  const registrarAjuste = async (
+  const registrarAjuste = (
     id: number,
     data: { cantidad: number; motivo: string; observaciones?: string | null }
-  ) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.indumentariaAjuste(apiFetch, id, data);
-      if (response.ok) {
-        setSuccess('Ajuste registrado correctamente');
-        await fetchIndumentaria();
-        setTimeout(() => setSuccess(''), 3000);
-        return { success: true };
-      }
-      const errorData = await response.json();
-      setError(errorData.error || 'Error al registrar ajuste');
-      return { success: false };
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  ) =>
+    ejecutar(() => apiService.indumentariaAjuste(apiFetch, id, data), {
+      mensajeExito: 'Ajuste registrado correctamente',
+      mensajeErrorDefault: 'Error al registrar ajuste',
+      alTerminar: fetchIndumentaria,
+    });
 
   return {
     indumentaria,
