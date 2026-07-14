@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { apiService } from '../services/api';
-import { User } from '../types';
+import { apiService } from '../../../services/api';
+import { User } from '../../../types';
 
 const AUTH_STORAGE_KEY = 'cheese_stock_auth';
 

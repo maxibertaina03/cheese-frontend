@@ -1,10 +1,10 @@
 // src/components/Admin/AdminPanel.tsx
 import React, { useState } from 'react';
 import { ProductosManager } from './ProductosManager';
-import { UsuariosManager } from './UsuariosManager';
+import { UsuariosManager } from '../../contextos/identidad/componentes/UsuariosManager';
 import { ProveedoresManager } from './ProveedoresManager';
 import { Producto, TipoQueso, CreateProductoData, Proveedor } from '../../types';
-import { Usuario, Modulo } from '../../hooks/useUsuarios';
+import { Usuario, Modulo } from '../../contextos/identidad/hooks/useUsuarios';
 
 interface AdminPanelProps {
   // Productos

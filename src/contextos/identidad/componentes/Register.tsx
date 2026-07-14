@@ -1,4 +1,4 @@
-// src/components/Auth/Register.tsx
+// src/contextos/identidad/componentes/Register.tsx
 import React, { useState } from 'react';
 
 interface RegisterProps {

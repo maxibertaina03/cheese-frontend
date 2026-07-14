@@ -1,8 +1,8 @@
-// src/hooks/useProveedores.ts
-import { Proveedor } from '../types';
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+// src/compartido/hooks/useProveedores.ts
+import { Proveedor } from '../../types';
+import { apiService } from '../../services/api';
+import { useColeccion } from './useColeccion';
+import { useEstadoOperacion } from './useEstadoOperacion';
 
 export const useProveedores = (apiFetch: any) => {
   const { cargando: loading, error, exito: success, setError, setExito: setSuccess, ejecutar } =

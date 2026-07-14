@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { apiService } from '../../services/api';
-import { User } from '../../types';
+import { apiService } from '../../../services/api';
+import { User } from '../../../types';
 import { Register } from './Register';
 
 interface LoginProps {

@@ -1,7 +1,7 @@
-// src/components/Admin/UsuariosManager.tsx
+// src/contextos/identidad/componentes/UsuariosManager.tsx
 import React, { useState } from 'react';
-import { Usuario, Modulo } from '../../hooks/useUsuarios';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { Usuario, Modulo } from '../hooks/useUsuarios';
+import { DeleteConfirmModal } from '../../../components/Admin/DeleteConfirmModal';
 
 // Secciones disponibles para asignar a un usuario (rol 'usuario').
 const MODULOS: { value: Modulo; label: string }[] = [

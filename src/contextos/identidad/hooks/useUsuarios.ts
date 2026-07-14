@@ -1,7 +1,7 @@
-// src/hooks/useUsuarios.ts
-import { apiService } from '../services/api';
-import { useColeccion } from '../compartido/hooks/useColeccion';
-import { useEstadoOperacion } from '../compartido/hooks/useEstadoOperacion';
+// src/contextos/identidad/hooks/useUsuarios.ts
+import { apiService } from '../../../services/api';
+import { useColeccion } from '../../../compartido/hooks/useColeccion';
+import { useEstadoOperacion } from '../../../compartido/hooks/useEstadoOperacion';
 
 export type Modulo = 'quesos' | 'elementos' | 'indumentaria' | 'dashboard' | 'historial' | 'facturacion';
 
