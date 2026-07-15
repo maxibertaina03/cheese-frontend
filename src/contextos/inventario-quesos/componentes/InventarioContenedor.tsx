@@ -2,20 +2,14 @@
 //
 // Contenedor del bounded context de inventario de quesos: rinde sus dos vistas
 // (inventario e historial), sus modales (alta, corte, edición, baja, stock al
-// lunes) y las exportaciones a PDF.
-//
-// Los hooks del contexto (useInventory / useHistorial) se inyectan desde App
-// porque su estado lo consumen además el Header (stats), el Dashboard y
-// facturación. Cuando se introduzca un provider para este contexto, el
-// contenedor pasará a leerlos del contexto sin tocar el resto del archivo.
-import React, { useState } from 'react';
-import { StockAlCorteResponse, TipoQueso, Unidad, User } from '../../../types';
+// lunes) y las exportaciones a PDF. El estado lo lee del InventarioProvider.
+import React, { useEffect, useRef, useState } from 'react';
+import { StockAlCorteResponse, Unidad, User } from '../../../types';
 import { apiService } from '../../../services/api';
 import { descargarBlob } from '../../../compartido/utils/descargas';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from '../../../utils/pdfExport';
 import { DeleteConfirmModal } from '../../../components/Admin/DeleteConfirmModal';
-import { useInventory } from '../hooks/useInventory';
-import { useHistorial } from '../hooks/useHistorial';
+import { useInventarioContexto } from '../InventarioContexto';
 import { InventoryForm } from './InventoryForm';
 import { InventoryList } from './InventoryList';
 import { HistorialView } from './HistorialView';
@@ -28,9 +22,6 @@ interface Props {
   vista: 'inventario' | 'historial' | null;
   user: User;
   apiFetch: any;
-  tiposQueso: TipoQueso[];
-  inventario: ReturnType<typeof useInventory>;
-  historial: ReturnType<typeof useHistorial>;
   showForm: boolean;
   onCloseForm: () => void;
   onVolver: () => void;
@@ -48,13 +39,12 @@ export const InventarioContenedor: React.FC<Props> = ({
   vista,
   user,
   apiFetch,
-  tiposQueso,
-  inventario,
-  historial,
   showForm,
   onCloseForm,
   onVolver,
 }) => {
+  const { inventario, historial, tiposQueso } = useInventarioContexto();
+
   const {
     unidades,
     productos,
@@ -83,7 +73,20 @@ export const InventarioContenedor: React.FC<Props> = ({
     setTipoQuesoFiltro,
     historialUnidades,
     deleteUnidadPermanente,
+    fetchHistorial,
   } = historial;
+
+  // Recargar el historial una vez por visita a esa vista (se resetea al salir).
+  const historialCargado = useRef(false);
+  useEffect(() => {
+    if (vista !== 'historial') {
+      historialCargado.current = false;
+      return;
+    }
+    if (historialCargado.current) return;
+    historialCargado.current = true;
+    fetchHistorial();
+  }, [vista, fetchHistorial]);
 
   const [exportingInventarioPdf, setExportingInventarioPdf] = useState(false);
   const [exportingHistorialPdf, setExportingHistorialPdf] = useState(false);
