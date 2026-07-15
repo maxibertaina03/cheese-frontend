@@ -4,23 +4,22 @@
 // composición de los contenedores de cada bounded context.
 //
 // Cuando un contexto necesita datos de otro (facturación vende productos y
-// elementos), el shell los lee y se los pasa como props: los contextos no se
-// importan entre sí. Ver el context map en plan.md.
+// elementos; elementos usa motivos de quesos), el shell los lee y se los pasa
+// como props: los contextos no se importan entre sí. Ver context map en plan.md.
 import React, { useEffect, useRef, useState } from 'react';
 import { Modulo, User } from '../types';
 import { canAccess } from '../utils/permissions';
 import { Header } from '../components/Layout/Header';
 import { Alerts } from '../components/Layout/Alerts';
-import { AdminPanel } from '../components/Admin/AdminPanel';
 import { Dashboard } from '../components/Dashboard/Dashboard';
 import { useProveedores } from '../compartido/hooks/useProveedores';
-import { useUsuarios } from '../contextos/identidad/hooks/useUsuarios';
 import { useInventarioContexto } from '../contextos/inventario-quesos/InventarioContexto';
 import { InventarioContenedor } from '../contextos/inventario-quesos/componentes/InventarioContenedor';
-import { useElementos } from '../contextos/elementos/hooks/useElementos';
-import { ElementosView } from '../contextos/elementos/componentes/ElementosView';
+import { useElementosContexto } from '../contextos/elementos/ElementosContexto';
+import { ElementosContenedor } from '../contextos/elementos/componentes/ElementosContenedor';
 import { IndumentariaContenedor } from '../contextos/indumentaria/componentes/IndumentariaContenedor';
 import { FacturacionContenedor } from '../contextos/facturacion/componentes/FacturacionContenedor';
+import { AdminContenedor } from './AdminContenedor';
 
 type Vista = 'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria' | 'facturacion';
 
@@ -49,49 +48,21 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
   const [showForm, setShowForm] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
 
-  // Contexto de inventario: dueño de unidades, productos, motivos, tipos de
-  // queso e historial. Acá se lee para el Header, el Dashboard y facturación.
-  const { inventario, historial, productos: productosCtx, tiposQueso } = useInventarioContexto();
+  // Contextos que el shell lee para el Header, el Dashboard y facturación.
+  const { inventario, historial, productos: productosCtx } = useInventarioContexto();
   const { unidades, productos, motivos, error, success, fetchProductos } = inventario;
   const { historialUnidades } = historial;
-  const {
-    productos: productosAdmin,
-    loading: loadingAdmin,
-    error: errorAdmin,
-    success: successAdmin,
-    fetchProductos: fetchProductosAdmin,
-    createProducto,
-    updateProducto,
-    deleteProducto,
-    setError: setErrorAdmin,
-  } = productosCtx;
+  const { loading: loadingProductos, error: errorProductos, success: successProductos, updateProducto } = productosCtx;
 
-  const {
-    usuarios,
-    loading: loadingUsuarios,
-    error: errorUsuarios,
-    success: successUsuarios,
-    fetchUsuarios,
-    createUsuario,
-    updateUsuario,
-    deleteUsuario,
-    setError: setErrorUsuarios,
-  } = useUsuarios(apiFetch);
-
+  const elementosCtx = useElementosContexto();
   const {
     elementos,
     loading: loadingElementos,
     error: errorElementos,
     success: successElementos,
     fetchElementos,
-    fetchMovimientos,
-    createElemento,
     updateElemento,
-    deleteElemento,
-    registrarIngreso,
-    registrarEgreso,
-    setError: setErrorElementos,
-  } = useElementos(apiFetch);
+  } = elementosCtx;
 
   const {
     proveedores,
@@ -109,29 +80,13 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
   // para que admin lo actualice al crear un producto nuevo.
   const refrescarStockComercialRef = useRef<(() => Promise<void>) | null>(null);
 
-  // Carga inicial de lo que no vive en un provider. El shell se monta con el
-  // usuario ya logueado y se desmonta al cerrar sesión.
+  // Proveedores es lo único que no vive en un provider (shared kernel).
   const cargado = useRef(false);
   useEffect(() => {
     if (cargado.current) return;
     cargado.current = true;
-    Promise.all([fetchElementos(), fetchProveedores()]);
-  }, [fetchElementos, fetchProveedores]);
-
-  const handleOpenAdmin = async () => {
-    await Promise.all([fetchProductosAdmin(), fetchUsuarios(), fetchProveedores()]);
-    setShowAdmin(true);
-  };
-
-  // Admin: crear producto y refrescar también el stock de venta por cantidad,
-  // para que el producto nuevo aparezca ahí sin recargar la página.
-  const handleCreateProducto = async (data: Parameters<typeof createProducto>[0]) => {
-    const result = await createProducto(data);
-    if (result.success) {
-      await refrescarStockComercialRef.current?.();
-    }
-    return result;
-  };
+    fetchProveedores();
+  }, [fetchProveedores]);
 
   // Precios (facturación): guardar precio por unidad de un producto y refrescar.
   // El contenedor de facturación refresca además su stock comercial.
@@ -197,7 +152,7 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
         stats={headerStats}
         onNewIngreso={handleNewIngreso}
         onOpenHistorial={() => irA('historial')}
-        onOpenAdmin={handleOpenAdmin}
+        onOpenAdmin={() => setShowAdmin(true)}
         onOpenDashboard={() => irA('dashboard')}
         onOpenElementos={() => irA('elementos')}
         onOpenIndumentaria={() => irA('indumentaria')}
@@ -219,23 +174,12 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
         onVolver={() => irA('inventario')}
       />
 
-      {vistaActual === 'elementos' && (
-        <ElementosView
-          user={user}
-          elementos={elementos}
-          motivos={motivos}
-          loading={loadingElementos}
-          error={errorElementos}
-          onClearError={() => setErrorElementos('')}
-          onCreateElemento={createElemento}
-          onUpdateElemento={updateElemento}
-          onDeleteElemento={deleteElemento}
-          onRegistrarIngreso={registrarIngreso}
-          onRegistrarEgreso={registrarEgreso}
-          onFetchMovimientos={fetchMovimientos}
-          onVolver={() => irA('inventario')}
-        />
-      )}
+      <ElementosContenedor
+        visible={vistaActual === 'elementos'}
+        user={user}
+        motivos={motivos}
+        onVolver={() => irA('inventario')}
+      />
 
       {vistaActual === 'dashboard' && (
         <Dashboard
@@ -267,45 +211,30 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
         productos={productos}
         elementos={elementos}
         proveedores={proveedores}
-        loadingPrecios={loadingAdmin || loadingElementos}
-        errorPrecios={errorAdmin || errorElementos}
-        successPrecios={successAdmin || successElementos}
+        loadingPrecios={loadingProductos || loadingElementos}
+        errorPrecios={errorProductos || errorElementos}
+        successPrecios={successProductos || successElementos}
         onSaveProductoPrecio={handleSaveProductoPrecio}
         onSaveElemento={handleSaveElementoVenta}
         refrescarElementos={fetchElementos}
         refrescarStockRef={refrescarStockComercialRef}
       />
 
-      {showAdmin && (
-        <AdminPanel
-          productos={productosAdmin}
-          tiposQueso={tiposQueso}
-          loadingProductos={loadingAdmin}
-          errorProductos={errorAdmin}
-          successProductos={successAdmin}
-          onClearErrorProductos={() => setErrorAdmin('')}
-          onCreateProducto={handleCreateProducto}
-          onUpdateProducto={updateProducto}
-          onDeleteProducto={deleteProducto}
-          usuarios={usuarios}
-          loadingUsuarios={loadingUsuarios}
-          errorUsuarios={errorUsuarios}
-          successUsuarios={successUsuarios}
-          onClearErrorUsuarios={() => setErrorUsuarios('')}
-          onCreateUsuario={createUsuario}
-          onUpdateUsuario={updateUsuario}
-          onDeleteUsuario={deleteUsuario}
-          proveedores={proveedores}
-          loadingProveedores={loadingProveedores}
-          errorProveedores={errorProveedores}
-          successProveedores={successProveedores}
-          onClearErrorProveedores={() => setErrorProveedores('')}
-          onCreateProveedor={createProveedor}
-          onUpdateProveedor={updateProveedor}
-          onDeleteProveedor={deleteProveedor}
-          onClose={() => setShowAdmin(false)}
-        />
-      )}
+      <AdminContenedor
+        abierto={showAdmin}
+        apiFetch={apiFetch}
+        onClose={() => setShowAdmin(false)}
+        proveedores={proveedores}
+        loadingProveedores={loadingProveedores}
+        errorProveedores={errorProveedores}
+        successProveedores={successProveedores}
+        onClearErrorProveedores={() => setErrorProveedores('')}
+        onCreateProveedor={createProveedor}
+        onUpdateProveedor={updateProveedor}
+        onDeleteProveedor={deleteProveedor}
+        refrescarProveedores={fetchProveedores}
+        refrescarStockRef={refrescarStockComercialRef}
+      />
     </div>
   );
 };

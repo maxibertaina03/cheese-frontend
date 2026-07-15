@@ -9,6 +9,7 @@ import { createApiFetch } from './services/api';
 import { useAuth } from './contextos/identidad/hooks/useAuth';
 import { Login } from './contextos/identidad/componentes/Login';
 import { InventarioProvider } from './contextos/inventario-quesos/InventarioContexto';
+import { ElementosProvider } from './contextos/elementos/ElementosContexto';
 import { AppShell } from './app/AppShell';
 
 function App() {
@@ -29,7 +30,9 @@ function App() {
   // desmontan al cerrar sesión, así que el estado se limpia solo.
   return (
     <InventarioProvider apiFetch={apiFetch}>
-      <AppShell user={user} apiFetch={apiFetch} onLogout={logout} />
+      <ElementosProvider apiFetch={apiFetch}>
+        <AppShell user={user} apiFetch={apiFetch} onLogout={logout} />
+      </ElementosProvider>
     </InventarioProvider>
   );
 }
