@@ -1,7 +1,8 @@
-// src/App.tsx - Versión con Dashboard integrado
+// src/App.tsx - Shell de la aplicación: layout, vistas y arranque de datos.
+// La lógica de cada bounded context vive en su contenedor (contextos/*).
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
-import { Unidad, TipoQueso, StockAlCorteResponse, Modulo, CreateNotaPedidoData, CreateReciboData, NotaParaDevolver, CreateNotaCreditoData } from './types';
+import { Unidad, TipoQueso, StockAlCorteResponse, Modulo } from './types';
 import { apiService, createApiFetch } from './services/api';
 import { useAuth } from './contextos/identidad/hooks/useAuth';
 import { canAccess } from './utils/permissions';
@@ -19,32 +20,15 @@ import { StockAlLunesModal } from './contextos/inventario-quesos/componentes/Sto
 import { DeleteConfirmModal } from './components/Admin/DeleteConfirmModal';
 import { HistorialView } from './contextos/inventario-quesos/componentes/HistorialView';
 import { AdminPanel } from './components/Admin/AdminPanel';
-import { Dashboard } from './components/Dashboard/Dashboard'; // ✨ NUEVO
+import { Dashboard } from './components/Dashboard/Dashboard';
 import { useUsuarios } from './contextos/identidad/hooks/useUsuarios';
 import { useElementos } from './contextos/elementos/hooks/useElementos';
 import { ElementosView } from './contextos/elementos/componentes/ElementosView';
-import { useIndumentaria } from './contextos/indumentaria/hooks/useIndumentaria';
 import { useProveedores } from './compartido/hooks/useProveedores';
-import { useClientes } from './contextos/facturacion/hooks/useClientes';
-import { useEmpresa } from './contextos/facturacion/hooks/useEmpresa';
-import { useNotasPedido } from './contextos/facturacion/hooks/useNotasPedido';
-import { useStockComercial } from './contextos/facturacion/hooks/useStockComercial';
-import { useRecibos } from './contextos/facturacion/hooks/useRecibos';
-import { useNotasCredito } from './contextos/facturacion/hooks/useNotasCredito';
-import { IndumentariaView } from './contextos/indumentaria/componentes/IndumentariaView';
-import { FacturacionView } from './contextos/facturacion/componentes/FacturacionView';
+import { IndumentariaContenedor } from './contextos/indumentaria/componentes/IndumentariaContenedor';
+import { FacturacionContenedor } from './contextos/facturacion/componentes/FacturacionContenedor';
+import { descargarBlob } from './compartido/utils/descargas';
 import { exportHistorialPdfLocal, exportInventarioPdfLocal } from './utils/pdfExport';
-
-const downloadBlob = (blob: Blob, filename: string) => {
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
-};
 
 function App() {
   const { user, setUser, logout, authLoading } = useAuth();
@@ -61,8 +45,7 @@ function App() {
   const [showStockLunesModal, setShowStockLunesModal] = useState(false);
   const [stockLunesFecha, setStockLunesFecha] = useState<string | null>(null);
   const [imprimiendoStockLunes, setImprimiendoStockLunes] = useState(false);
-  const [downloadingReporte, setDownloadingReporte] = useState(false);
-  
+
   // ✨ ACTUALIZADO: Agregar 'dashboard' como opción
   const [vistaActual, setVistaActual] = useState<'inventario' | 'historial' | 'dashboard' | 'elementos' | 'indumentaria' | 'facturacion'>('inventario');
   
@@ -155,21 +138,6 @@ function App() {
   } = useElementos(apiFetch);
 
   const {
-    indumentaria,
-    loading: loadingIndumentaria,
-    error: errorIndumentaria,
-    success: successIndumentaria,
-    fetchIndumentaria,
-    fetchMovimientos: fetchMovimientosIndumentaria,
-    createIndumentaria,
-    updateIndumentaria,
-    deleteIndumentaria,
-    registrarIngreso: registrarIngresoIndumentaria,
-    registrarEgreso: registrarEgresoIndumentaria,
-    setError: setErrorIndumentaria,
-  } = useIndumentaria(apiFetch);
-
-  const {
     proveedores,
     loading: loadingProveedores,
     error: errorProveedores,
@@ -181,64 +149,9 @@ function App() {
     setError: setErrorProveedores,
   } = useProveedores(apiFetch);
 
-  const {
-    clientes,
-    loading: loadingClientes,
-    error: errorClientes,
-    success: successClientes,
-    fetchClientes,
-    createCliente,
-    updateCliente,
-    deleteCliente,
-    setError: setErrorClientes,
-  } = useClientes(apiFetch);
-
-  const {
-    empresa,
-    loading: loadingEmpresa,
-    error: errorEmpresa,
-    success: successEmpresa,
-    fetchEmpresa,
-    saveEmpresa,
-  } = useEmpresa(apiFetch);
-
-  const {
-    notas,
-    loading: loadingNotas,
-    error: errorNotas,
-    success: successNotas,
-    fetchNotas,
-    createNota,
-  } = useNotasPedido(apiFetch);
-
-  const {
-    stock: stockComercial,
-    movimientos: movimientosStock,
-    loading: loadingStock,
-    error: errorStock,
-    success: successStock,
-    fetchStock: fetchStockComercial,
-    fetchMovimientos: fetchMovimientosStock,
-    ingresar: ingresarStockComercial,
-  } = useStockComercial(apiFetch);
-
-  const {
-    recibos,
-    loading: loadingRecibos,
-    error: errorRecibos,
-    success: successRecibos,
-    fetchRecibos,
-    createRecibo,
-  } = useRecibos(apiFetch);
-
-  const {
-    notasCredito,
-    loading: loadingNotasCredito,
-    error: errorNotasCredito,
-    success: successNotasCredito,
-    fetchNotasCredito,
-    createNotaCredito,
-  } = useNotasCredito(apiFetch);
+  // Puente: FacturacionContenedor registra acá cómo refrescar el stock comercial,
+  // para que admin lo actualice al crear un producto nuevo.
+  const refrescarStockComercialRef = useRef<(() => Promise<void>) | null>(null);
 
   const fetchTiposQueso = useCallback(async () => {
     try {
@@ -250,6 +163,8 @@ function App() {
     }
   }, [apiFetch]);
 
+  // Arranque de datos transversales. Cada contenedor de contexto (facturación,
+  // indumentaria) carga los suyos al montarse.
   useEffect(() => {
     if (user?.token && !dataLoaded) {
       const fetchData = async () => {
@@ -260,18 +175,13 @@ function App() {
           fetchTiposQueso(),
           fetchHistorial(),
           fetchElementos(),
-          fetchIndumentaria(),
           fetchProveedores(),
-          // Facturación completa solo con permiso
-          ...(canAccess(user, 'facturacion')
-            ? [fetchClientes(), fetchEmpresa(), fetchNotas(), fetchStockComercial(), fetchMovimientosStock(), fetchRecibos(), fetchNotasCredito()]
-            : []),
         ]);
       };
       fetchData();
       setDataLoaded(true);
     }
-  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchIndumentaria, fetchProveedores, fetchClientes, fetchEmpresa, fetchNotas, fetchStockComercial, fetchMovimientosStock, fetchRecibos, fetchNotasCredito]);
+  }, [user, dataLoaded, fetchUnidades, fetchProductos, fetchMotivos, fetchTiposQueso, fetchHistorial, fetchElementos, fetchProveedores]);
   const historialCargado = useRef(false);
 
   // Llevar al usuario a la primera seccion a la que tiene acceso al iniciar sesion.
@@ -397,17 +307,17 @@ function App() {
   const handleCreateProducto = async (data: Parameters<typeof createProducto>[0]) => {
     const result = await createProducto(data);
     if (result.success) {
-      await fetchStockComercial();
+      await refrescarStockComercialRef.current?.();
     }
     return result;
   };
 
-  // Facturación: guardar precio por unidad de un producto y refrescar el inventario
+  // Precios (facturación): guardar precio por unidad de un producto y refrescar.
+  // El contenedor de facturación refresca además su stock comercial.
   const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
     const result = await updateProducto(id, { precioUnitario });
     if (result.success) {
-      // Refrescar productos y stock comercial (el precio se muestra ahí y en la nota).
-      await Promise.all([fetchProductos(), fetchStockComercial()]);
+      await fetchProductos();
     }
     return result;
   };
@@ -417,121 +327,6 @@ function App() {
     data: { precioUnitario: number; esVendible: boolean }
   ) => {
     return updateElemento(id, data);
-  };
-
-  // Facturación: imprimir/descargar el PDF de una nota de pedido
-  const handleImprimirNota = async (id: number) => {
-    try {
-      const response = await apiService.downloadNotaPedidoPdf(apiFetch, id);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      const nota = notas.find((n) => n.id === id);
-      downloadBlob(blob, `nota_pedido_${nota ? `${nota.serie}-${nota.numero}` : id}.pdf`);
-    } catch (error) {
-      console.error('Error al imprimir la nota de pedido:', error);
-      setError('No se pudo generar el PDF de la nota de pedido.');
-      setTimeout(() => setError(''), 5000);
-    }
-  };
-
-  // Facturación: crear nota de pedido, refrescar stock y descargar el PDF
-  const handleCrearNotaPedido = async (data: CreateNotaPedidoData) => {
-    const result = await createNota(data);
-    if (result.success && result.nota) {
-      await Promise.all([fetchStockComercial(), fetchMovimientosStock(), fetchElementos()]);
-      await handleImprimirNota(result.nota.id);
-    }
-    return { success: result.success };
-  };
-
-  // Facturación: imprimir/descargar el PDF de un recibo
-  const handleImprimirRecibo = async (id: number) => {
-    try {
-      const response = await apiService.downloadReciboPdf(apiFetch, id);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      const recibo = recibos.find((r) => r.id === id);
-      downloadBlob(blob, `recibo_${recibo ? `${recibo.serie}-${recibo.numero}` : id}.pdf`);
-    } catch (error) {
-      console.error('Error al imprimir el recibo:', error);
-      setError('No se pudo generar el PDF del recibo.');
-      setTimeout(() => setError(''), 5000);
-    }
-  };
-
-  // Facturación: crear recibo, refrescar notas (saldos) y descargar el PDF
-  const handleCrearRecibo = async (data: CreateReciboData) => {
-    const result = await createRecibo(data);
-    if (result.success && result.recibo) {
-      await fetchNotas();
-      await handleImprimirRecibo(result.recibo.id);
-    }
-    return { success: result.success };
-  };
-
-  // Facturación: traer una nota de pedido con sus ítems para devolver
-  const handleFetchNotaParaDevolver = async (notaPedidoId: number): Promise<NotaParaDevolver | null> => {
-    try {
-      const response = await apiService.getNotaParaDevolver(apiFetch, notaPedidoId);
-      if (!response.ok) return null;
-      return (await response.json()) as NotaParaDevolver;
-    } catch (error) {
-      console.error('Error al traer la nota para devolver:', error);
-      return null;
-    }
-  };
-
-  const handleImprimirNotaCredito = async (id: number) => {
-    try {
-      const response = await apiService.downloadNotaCreditoPdf(apiFetch, id);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      const nc = notasCredito.find((n) => n.id === id);
-      downloadBlob(blob, `nota_credito_${nc ? `${nc.serie}-${nc.numero}` : id}.pdf`);
-    } catch (error) {
-      console.error('Error al imprimir la nota de crédito:', error);
-      setError('No se pudo generar el PDF de la nota de crédito.');
-      setTimeout(() => setError(''), 5000);
-    }
-  };
-
-  // Facturación: descargar el PDF del reporte de ventas
-  const handleDescargarReportePdf = async (desde: string, hasta: string) => {
-    try {
-      setDownloadingReporte(true);
-      const response = await apiService.downloadReporteFacturacionPdf(apiFetch, desde, hasta);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      downloadBlob(blob, `reporte_ventas_${desde}_${hasta}.pdf`);
-    } catch (error) {
-      console.error('Error al descargar el reporte:', error);
-      setError('No se pudo generar el PDF del reporte.');
-      setTimeout(() => setError(''), 5000);
-    } finally {
-      setDownloadingReporte(false);
-    }
-  };
-
-  // Facturación: crear nota de crédito, refrescar stock/notas y descargar el PDF
-  const handleCrearNotaCredito = async (data: CreateNotaCreditoData) => {
-    const result = await createNotaCredito(data);
-    if (result.success && result.nota) {
-      await Promise.all([fetchNotas(), fetchStockComercial(), fetchMovimientosStock(), fetchElementos()]);
-      await handleImprimirNotaCredito(result.nota.id);
-    }
-    return { success: result.success };
   };
 
   const handleCreateUnidad = async (data: {
@@ -583,18 +378,9 @@ function App() {
           { label: 'Productos', value: productos.length },
         ];
 
-  const activeError =
-    vistaActual === 'elementos'
-      ? errorElementos
-      : vistaActual === 'indumentaria'
-      ? errorIndumentaria
-      : error;
-  const activeSuccess =
-    vistaActual === 'elementos'
-      ? successElementos
-      : vistaActual === 'indumentaria'
-      ? successIndumentaria
-      : success;
+  // Indumentaria y facturación muestran sus alertas dentro de su contenedor.
+  const activeError = vistaActual === 'elementos' ? errorElementos : error;
+  const activeSuccess = vistaActual === 'elementos' ? successElementos : success;
 
   const handleNewIngreso = () => {
     if (vistaActual !== 'inventario') {
@@ -654,7 +440,7 @@ function App() {
       }
 
       const blob = await response.blob();
-      downloadBlob(blob, filename);
+      descargarBlob(blob, filename);
       setSuccess('PDF del stock al lunes generado correctamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -686,7 +472,7 @@ function App() {
       }
 
       const blob = await response.blob();
-      downloadBlob(blob, filename);
+      descargarBlob(blob, filename);
       setSuccess('PDF de inventario exportado correctamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -724,7 +510,7 @@ function App() {
       }
 
       const blob = await response.blob();
-      downloadBlob(blob, filename);
+      descargarBlob(blob, filename);
       setSuccess('PDF de historial exportado correctamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -857,91 +643,46 @@ function App() {
           onFetchMovimientos={fetchMovimientos}
           onVolver={() => setVistaActual('inventario')}
         />
-      ) : vistaActual === 'indumentaria' ? (
-        <IndumentariaView
-          user={user}
-          prendas={indumentaria}
-          proveedores={proveedores}
-          loading={loadingIndumentaria}
-          error={errorIndumentaria}
-          onClearError={() => setErrorIndumentaria('')}
-          onCreate={createIndumentaria}
-          onUpdate={updateIndumentaria}
-          onDelete={deleteIndumentaria}
-          onRegistrarIngreso={registrarIngresoIndumentaria}
-          onRegistrarEgreso={registrarEgresoIndumentaria}
-          onFetchMovimientos={fetchMovimientosIndumentaria}
-          onCreateProveedor={async (nombre) => {
-            const result = await createProveedor({ nombre });
-            return result.success && result.proveedor ? result.proveedor : null;
-          }}
-          onVolver={() => setVistaActual('inventario')}
-        />
-      ) : vistaActual === 'facturacion' ? (
-        <FacturacionView
-          clientes={clientes}
-          loadingClientes={loadingClientes}
-          errorClientes={errorClientes}
-          successClientes={successClientes}
-          onClearErrorClientes={() => setErrorClientes('')}
-          onCreateCliente={createCliente}
-          onUpdateCliente={updateCliente}
-          onDeleteCliente={deleteCliente}
-          empresa={empresa}
-          loadingEmpresa={loadingEmpresa}
-          errorEmpresa={errorEmpresa}
-          successEmpresa={successEmpresa}
-          onSaveEmpresa={saveEmpresa}
-          productos={productos}
-          elementos={elementos}
-          loadingPrecios={loadingAdmin || loadingElementos}
-          errorPrecios={errorAdmin || errorElementos}
-          successPrecios={successAdmin || successElementos}
-          onSaveProductoPrecio={handleSaveProductoPrecio}
-          onSaveElemento={handleSaveElementoVenta}
-          notas={notas}
-          loadingNotas={loadingNotas}
-          errorNotas={errorNotas}
-          successNotas={successNotas}
-          onCrearNota={handleCrearNotaPedido}
-          onImprimirNota={handleImprimirNota}
-          stockComercial={stockComercial}
-          movimientosStock={movimientosStock}
-          proveedores={proveedores}
-          loadingStock={loadingStock}
-          errorStock={errorStock}
-          successStock={successStock}
-          onIngresarStock={ingresarStockComercial}
-          recibos={recibos}
-          loadingRecibos={loadingRecibos}
-          errorRecibos={errorRecibos}
-          successRecibos={successRecibos}
-          onCrearRecibo={handleCrearRecibo}
-          onImprimirRecibo={handleImprimirRecibo}
-          notasCredito={notasCredito}
-          loadingNotasCredito={loadingNotasCredito}
-          errorNotasCredito={errorNotasCredito}
-          successNotasCredito={successNotasCredito}
-          onFetchNotaParaDevolver={handleFetchNotaParaDevolver}
-          onCrearNotaCredito={handleCrearNotaCredito}
-          onImprimirNotaCredito={handleImprimirNotaCredito}
-          apiFetch={apiFetch}
-          onDownloadReportePdf={handleDescargarReportePdf}
-          downloadingReporte={downloadingReporte}
-          esAdmin={user?.rol === 'admin'}
-        />
-      ) : (
-        // ✨ NUEVO: Vista del Dashboard
+      ) : vistaActual === 'dashboard' ? (
         <Dashboard
           user={user}
           apiFetch={apiFetch}
           onVolver={() => setVistaActual('inventario')}
-          unidades={unidades}                    // ← Agregar
-          historialUnidades={historialUnidades}  // ← Agregar  
-          productos={productos}                  // ← Agregar
-
+          unidades={unidades}
+          historialUnidades={historialUnidades}
+          productos={productos}
         />
-      )}
+      ) : null}
+
+      {/* Contenedores de bounded contexts: siempre montados (conservan sus
+          datos entre navegaciones), visibles solo en su vista. */}
+      <IndumentariaContenedor
+        visible={vistaActual === 'indumentaria'}
+        user={user}
+        apiFetch={apiFetch}
+        proveedores={proveedores}
+        onCreateProveedor={async (nombre) => {
+          const result = await createProveedor({ nombre });
+          return result.success && result.proveedor ? result.proveedor : null;
+        }}
+        onVolver={() => setVistaActual('inventario')}
+      />
+
+      <FacturacionContenedor
+        visible={vistaActual === 'facturacion'}
+        user={user}
+        apiFetch={apiFetch}
+        productos={productos}
+        elementos={elementos}
+        proveedores={proveedores}
+        loadingPrecios={loadingAdmin || loadingElementos}
+        errorPrecios={errorAdmin || errorElementos}
+        successPrecios={successAdmin || successElementos}
+        onSaveProductoPrecio={handleSaveProductoPrecio}
+        onSaveElemento={handleSaveElementoVenta}
+        refrescarElementos={fetchElementos}
+        refrescarStockRef={refrescarStockComercialRef}
+      />
 
       {/* Modales (compartidos entre todas las vistas) */}
       {showEditModal && (
