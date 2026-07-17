@@ -328,6 +328,12 @@ export const apiService = {
   getMovimientosStockComercial: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial/movimientos`),
 
+  // Elimina una compra (movimiento de ingreso) y revierte el stock.
+  eliminarMovimientoStockComercial: (apiFetch: any, id: number) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/facturacion/stock-comercial/movimientos/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Facturación - Recibos
   getRecibos: (apiFetch: any) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/recibos`),

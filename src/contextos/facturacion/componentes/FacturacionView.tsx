@@ -73,6 +73,7 @@ interface Props {
   errorStock: string;
   successStock: string;
   onIngresarStock: (productoId: number, data: CargaStockComercial) => Promise<{ success: boolean }>;
+  onEliminarMovimientoStock: (id: number) => Promise<{ success: boolean }>;
 
   // Recibos
   recibos: Recibo[];
@@ -229,7 +230,13 @@ export const FacturacionView: React.FC<Props> = (props) => {
           onIngresar={props.onIngresarStock}
         />
       ) : tab === 'compras' ? (
-        <MovimientosStockManager movimientos={props.movimientosStock} loading={props.loadingStock} />
+        <MovimientosStockManager
+          movimientos={props.movimientosStock}
+          loading={props.loadingStock}
+          error={props.errorStock}
+          success={props.successStock}
+          onEliminar={props.onEliminarMovimientoStock}
+        />
       ) : tab === 'clientes' ? (
         <ClientesManager
           clientes={props.clientes}

@@ -6,6 +6,9 @@ import { exportMovimientosStockPdfLocal } from '../../../utils/pdfExport';
 interface Props {
   movimientos: MovimientoStockComercial[];
   loading: boolean;
+  error: string;
+  success: string;
+  onEliminar: (id: number) => Promise<{ success: boolean }>;
 }
 
 const th: React.CSSProperties = {
@@ -30,9 +33,21 @@ const fechaRef = (m: MovimientoStockComercial) => (m.fechaComprobante || m.creat
 const TIPO_LABEL: Record<string, string> = { ingreso: 'Compra', egreso: 'Venta', ajuste: 'Ajuste' };
 const TIPO_COLOR: Record<string, string> = { ingreso: '#059669', egreso: '#dc2626', ajuste: '#d97706' };
 
-export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading }) => {
+export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading, error, success, onEliminar }) => {
   const [producto, setProducto] = useState('todos');
   const [proveedor, setProveedor] = useState('todos');
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+
+  const eliminar = async (m: MovimientoStockComercial) => {
+    const detalle = `${toNumber(m.cantidad)} unid. de ${m.producto ?? 'este producto'}`;
+    if (!window.confirm(`¿Eliminar esta compra? Se va a revertir el stock (${detalle}).`)) return;
+    setEliminandoId(m.id);
+    try {
+      await onEliminar(m.id);
+    } finally {
+      setEliminandoId(null);
+    }
+  };
   // Por defecto mostramos solo Compras (ingresos): las ventas/ajustes se generan
   // al facturar y no tienen comprobante/precio/proveedor de compra, así que se ven
   // vacías en esas columnas. Con el filtro "Tipo" se pueden ver igual.
@@ -128,6 +143,19 @@ export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading 
           {exportando ? 'Exportando PDF...' : 'Exportar PDF'}
         </button>
       </div>
+
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          <div className="alert-icon">⚠️</div>
+          <div className="alert-content">{error}</div>
+        </div>
+      )}
+      {success && (
+        <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
+          <div className="alert-icon">✓</div>
+          <div className="alert-content">{success}</div>
+        </div>
+      )}
 
       {/* Resumen */}
       <div className="historial-stats" style={{ marginBottom: '1.25rem' }}>
@@ -228,16 +256,17 @@ export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading 
               <th style={{ ...th, textAlign: 'right' }}>Total</th>
               <th style={th}>Proveedor</th>
               <th style={th}>Usuario</th>
+              <th style={{ ...th, textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>Cargando...</td>
+                <td colSpan={10} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>Cargando...</td>
               </tr>
             ) : filtrados.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
+                <td colSpan={10} style={{ ...td, textAlign: 'center', color: '#6b7280' }}>
                   No hay movimientos para el filtro
                 </td>
               </tr>
@@ -268,6 +297,21 @@ export const MovimientosStockManager: React.FC<Props> = ({ movimientos, loading 
                     </td>
                     <td style={td}>{m.proveedor ?? '-'}</td>
                     <td style={{ ...td, color: '#6b7280' }}>{m.usuario?.username ?? '-'}</td>
+                    <td style={{ ...td, textAlign: 'center' }}>
+                      {esCompra ? (
+                        <button
+                          className="btn-cancel"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                          disabled={eliminandoId === m.id}
+                          title="Eliminar esta compra y revertir el stock"
+                          onClick={() => eliminar(m)}
+                        >
+                          {eliminandoId === m.id ? '...' : '🗑 Eliminar'}
+                        </button>
+                      ) : (
+                        <span style={{ color: '#d1d5db' }}>—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })

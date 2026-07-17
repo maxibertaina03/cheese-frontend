@@ -25,6 +25,16 @@ export const useStockComercial = (apiFetch: any) => {
       },
     });
 
+  // Elimina una compra y revierte el stock; refresca stock y movimientos.
+  const eliminarMovimiento = (id: number) =>
+    ejecutar(() => apiService.eliminarMovimientoStockComercial(apiFetch, id), {
+      mensajeExito: 'Compra eliminada y stock actualizado',
+      mensajeErrorDefault: 'No se pudo eliminar la compra',
+      alTerminar: async () => {
+        await Promise.all([fetchStock(), fetchMovimientos()]);
+      },
+    });
+
   return {
     stock,
     movimientos,
@@ -34,6 +44,7 @@ export const useStockComercial = (apiFetch: any) => {
     fetchStock,
     fetchMovimientos,
     ingresar,
+    eliminarMovimiento,
     setError,
     setSuccess,
   };

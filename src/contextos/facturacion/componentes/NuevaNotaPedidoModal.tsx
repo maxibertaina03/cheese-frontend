@@ -14,6 +14,9 @@ interface Props {
 
 const money = (n: number) => `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Subtotal de una línea: precio × cantidad − descuento (nunca negativo).
+const subtotalLinea = (precio: number, qty: number, desc: number) => Math.max(0, precio * qty - desc);
+
 export const NuevaNotaPedidoModal: React.FC<Props> = ({
   clientes,
   stockComercial,
@@ -28,7 +31,9 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
   const [fecha, setFecha] = useState(hoy);
   const [observaciones, setObservaciones] = useState('');
   const [quesosQty, setQuesosQty] = useState<Record<number, number>>({});
+  const [quesosDesc, setQuesosDesc] = useState<Record<number, number>>({});
   const [elementosQty, setElementosQty] = useState<Record<number, number>>({});
+  const [elementosDesc, setElementosDesc] = useState<Record<number, number>>({});
 
   // Quesos vendibles: con stock comercial > 0 y precio cargado.
   const quesosDisponibles = useMemo(
@@ -45,14 +50,25 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
     let t = 0;
     quesosDisponibles.forEach((s) => {
       const qty = quesosQty[s.productoId] || 0;
-      if (qty > 0) t += Number(s.precioUnitario ?? 0) * qty;
+      if (qty > 0) t += subtotalLinea(Number(s.precioUnitario ?? 0), qty, quesosDesc[s.productoId] || 0);
     });
     elementosVendibles.forEach((e) => {
       const qty = elementosQty[e.id] || 0;
-      if (qty > 0) t += Number(e.precioUnitario ?? 0) * qty;
+      if (qty > 0) t += subtotalLinea(Number(e.precioUnitario ?? 0), qty, elementosDesc[e.id] || 0);
     });
     return t;
-  }, [quesosDisponibles, quesosQty, elementosVendibles, elementosQty]);
+  }, [quesosDisponibles, quesosQty, quesosDesc, elementosVendibles, elementosQty, elementosDesc]);
+
+  const totalDescuentos = useMemo(() => {
+    let d = 0;
+    quesosDisponibles.forEach((s) => {
+      if ((quesosQty[s.productoId] || 0) > 0) d += quesosDesc[s.productoId] || 0;
+    });
+    elementosVendibles.forEach((e) => {
+      if ((elementosQty[e.id] || 0) > 0) d += elementosDesc[e.id] || 0;
+    });
+    return d;
+  }, [quesosDisponibles, quesosQty, quesosDesc, elementosVendibles, elementosQty, elementosDesc]);
 
   const cantidadItems =
     Object.values(quesosQty).filter((q) => q > 0).length +
@@ -63,11 +79,15 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
     const items: CreateNotaPedidoData['items'] = [];
     quesosDisponibles.forEach((s) => {
       const qty = quesosQty[s.productoId] || 0;
-      if (qty > 0) items.push({ tipoItem: 'queso', productoId: s.productoId, cantidad: qty });
+      if (qty > 0) {
+        items.push({ tipoItem: 'queso', productoId: s.productoId, cantidad: qty, descuento: quesosDesc[s.productoId] || 0 });
+      }
     });
     elementosVendibles.forEach((e) => {
       const qty = elementosQty[e.id] || 0;
-      if (qty > 0) items.push({ tipoItem: 'elemento', elementoId: e.id, cantidad: qty });
+      if (qty > 0) {
+        items.push({ tipoItem: 'elemento', elementoId: e.id, cantidad: qty, descuento: elementosDesc[e.id] || 0 });
+      }
     });
     const result = await onConfirm({
       clienteId: Number(clienteId),
@@ -81,9 +101,77 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
   const filaStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.6rem',
+    gap: '0.5rem',
     padding: '0.55rem 0.75rem',
     borderBottom: '1px solid #f0f0f0',
+  };
+  const inputMini: React.CSSProperties = { maxWidth: 72, padding: '0.4rem 0.5rem' };
+  const subtotalStyle: React.CSSProperties = {
+    minWidth: 92,
+    textAlign: 'right',
+    fontWeight: 600,
+    color: '#1f2937',
+    fontSize: '0.9rem',
+  };
+
+  // Fila reutilizable de un ítem (queso o elemento).
+  const filaItem = (
+    key: string | number,
+    nombre: string,
+    infoExtra: string,
+    precio: number,
+    disponible: number,
+    qty: number,
+    desc: number,
+    maxQty: number | undefined,
+    onQty: (v: number | undefined) => void,
+    onDesc: (v: number) => void
+  ) => {
+    const sub = qty > 0 ? subtotalLinea(precio, qty, desc) : 0;
+    return (
+      <div key={key} style={filaStyle}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <strong>{nombre}</strong>{' '}
+          <span style={{ color: '#888', fontSize: '0.82rem' }}>
+            {infoExtra}
+            {money(precio)} c/u · disp. {disponible}
+          </span>
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <label style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Cant.</label>
+          <input
+            type="number"
+            className="form-input"
+            style={inputMini}
+            min={0}
+            max={maxQty}
+            value={qty || ''}
+            placeholder="0"
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') return onQty(undefined);
+              const n = Math.max(0, Number(raw));
+              onQty(maxQty !== undefined ? Math.min(maxQty, n) : n);
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <label style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Desc. $</label>
+          <input
+            type="number"
+            className="form-input"
+            style={inputMini}
+            min={0}
+            step="0.01"
+            value={desc || ''}
+            placeholder="0"
+            disabled={qty <= 0}
+            onChange={(e) => onDesc(Math.max(0, Number(e.target.value) || 0))}
+          />
+        </div>
+        <span style={subtotalStyle}>{qty > 0 ? money(sub) : '—'}</span>
+      </div>
+    );
   };
 
   return (
@@ -91,7 +179,7 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
       <div
         className="modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 720, maxHeight: '88vh', overflowY: 'auto' }}
+        style={{ maxWidth: 760, maxHeight: '88vh', overflowY: 'auto' }}
       >
         <div className="modal-header">
           <h3 className="modal-title">Nueva nota de pedido</h3>
@@ -135,42 +223,38 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
           </div>
         </div>
 
+        <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
+          El descuento es en $ sobre el total de esa línea (precio × cantidad).
+        </p>
+
         {/* Quesos: por cantidad desde el stock comercial */}
-        <h4 style={{ margin: '1rem 0 0.5rem' }}>Quesos</h4>
+        <h4 style={{ margin: '0.75rem 0 0.5rem' }}>Quesos</h4>
         {quesosDisponibles.length === 0 ? (
           <p style={{ color: '#888', fontSize: '0.9rem' }}>
             No hay quesos con stock de venta y precio. Cargá stock en la pestaña "Stock" y el precio en "Precios".
           </p>
         ) : (
           <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
-            {quesosDisponibles.map((s) => (
-              <div key={s.productoId} style={filaStyle}>
-                <span style={{ flex: 1 }}>
-                  <strong>{s.producto}</strong>{' '}
-                  <span style={{ color: '#888', fontSize: '0.85rem' }}>
-                    PLU {s.plu} · {money(Number(s.precioUnitario ?? 0))} c/u · disp. {s.cantidadDisponible}
-                  </span>
-                </span>
-                <input
-                  type="number"
-                  className="form-input"
-                  style={{ maxWidth: 90 }}
-                  min={0}
-                  max={s.cantidadDisponible}
-                  value={quesosQty[s.productoId] ?? ''}
-                  placeholder="0"
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    setQuesosQty((prev) => {
-                      const next = { ...prev };
-                      if (raw === '') delete next[s.productoId];
-                      else next[s.productoId] = Math.min(s.cantidadDisponible, Math.max(0, Number(raw)));
-                      return next;
-                    });
-                  }}
-                />
-              </div>
-            ))}
+            {quesosDisponibles.map((s) =>
+              filaItem(
+                s.productoId,
+                s.producto,
+                `PLU ${s.plu} · `,
+                Number(s.precioUnitario ?? 0),
+                s.cantidadDisponible,
+                quesosQty[s.productoId] || 0,
+                quesosDesc[s.productoId] || 0,
+                s.cantidadDisponible,
+                (v) =>
+                  setQuesosQty((prev) => {
+                    const next = { ...prev };
+                    if (v === undefined || v === 0) delete next[s.productoId];
+                    else next[s.productoId] = v;
+                    return next;
+                  }),
+                (v) => setQuesosDesc((prev) => ({ ...prev, [s.productoId]: v }))
+              )
+            )}
           </div>
         )}
 
@@ -180,34 +264,26 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
           <p style={{ color: '#888', fontSize: '0.9rem' }}>No hay elementos vendibles con precio.</p>
         ) : (
           <div style={{ border: '1px solid #eee', borderRadius: 8 }}>
-            {elementosVendibles.map((e) => (
-              <div key={e.id} style={filaStyle}>
-                <span style={{ flex: 1 }}>
-                  <strong>{e.nombre}</strong>{' '}
-                  <span style={{ color: '#888', fontSize: '0.85rem' }}>
-                    {money(Number(e.precioUnitario ?? 0))} c/u · disp. {e.cantidadDisponible}
-                  </span>
-                </span>
-                <input
-                  type="number"
-                  className="form-input"
-                  style={{ maxWidth: 90 }}
-                  min={0}
-                  max={Number(e.cantidadDisponible)}
-                  value={elementosQty[e.id] ?? ''}
-                  placeholder="0"
-                  onChange={(ev) => {
-                    const raw = ev.target.value;
-                    setElementosQty((prev) => {
-                      const next = { ...prev };
-                      if (raw === '') delete next[e.id];
-                      else next[e.id] = Math.max(0, Number(raw));
-                      return next;
-                    });
-                  }}
-                />
-              </div>
-            ))}
+            {elementosVendibles.map((e) =>
+              filaItem(
+                `e${e.id}`,
+                e.nombre,
+                '',
+                Number(e.precioUnitario ?? 0),
+                Number(e.cantidadDisponible),
+                elementosQty[e.id] || 0,
+                elementosDesc[e.id] || 0,
+                Number(e.cantidadDisponible),
+                (v) =>
+                  setElementosQty((prev) => {
+                    const next = { ...prev };
+                    if (v === undefined || v === 0) delete next[e.id];
+                    else next[e.id] = v;
+                    return next;
+                  }),
+                (v) => setElementosDesc((prev) => ({ ...prev, [e.id]: v }))
+              )
+            )}
           </div>
         )}
 
@@ -232,7 +308,14 @@ export const NuevaNotaPedidoModal: React.FC<Props> = ({
             fontSize: '1.1rem',
           }}
         >
-          <span>Total ({cantidadItems} ítem{cantidadItems === 1 ? '' : 's'})</span>
+          <span>
+            Total ({cantidadItems} ítem{cantidadItems === 1 ? '' : 's'})
+            {totalDescuentos > 0 && (
+              <span style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 500, marginLeft: 8 }}>
+                descuentos: {money(totalDescuentos)}
+              </span>
+            )}
+          </span>
           <span>{money(total)}</span>
         </div>
 

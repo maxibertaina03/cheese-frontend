@@ -110,6 +110,7 @@ export const FacturacionContenedor: React.FC<Props> = ({
     fetchStock,
     fetchMovimientos: fetchMovimientosStock,
     ingresar: ingresarStockComercial,
+    eliminarMovimiento: eliminarMovimientoStock,
   } = useStockComercial(apiFetch);
 
   const {
@@ -311,6 +312,7 @@ export const FacturacionContenedor: React.FC<Props> = ({
         onImprimirNota={handleImprimirNota}
         stockComercial={stockComercial}
         movimientosStock={movimientosStock}
+        onEliminarMovimientoStock={eliminarMovimientoStock}
         proveedores={proveedores}
         loadingStock={loadingStock}
         errorStock={errorStock}

@@ -159,6 +159,7 @@ export interface NotaPedidoItem {
   plu: string | null;
   cantidad: number;
   precioUnitario: number;
+  descuento?: number;
   subtotal: number;
 }
 
@@ -225,6 +226,7 @@ export interface CreateNotaPedidoItem {
   productoId?: number;
   elementoId?: number;
   cantidad: number;
+  descuento?: number;
 }
 
 export interface CreateNotaPedidoData {
