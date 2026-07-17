@@ -75,6 +75,14 @@ export const useElementos = (apiFetch: any) => {
       alTerminar: fetchElementos,
     });
 
+  // Solo datos de venta: precio + si se vende (pestaña Precios de Facturación).
+  const guardarVenta = (elementoId: number, data: { precioUnitario: number; esVendible: boolean }) =>
+    ejecutar(() => apiService.updateElementoVenta(apiFetch, elementoId, data), {
+      mensajeExito: 'Datos de venta actualizados',
+      mensajeErrorDefault: 'Error al actualizar los datos de venta',
+      alTerminar: fetchElementos,
+    });
+
   return {
     elementos,
     loading,
@@ -87,6 +95,7 @@ export const useElementos = (apiFetch: any) => {
     deleteElemento,
     registrarIngreso,
     registrarEgreso,
+    guardarVenta,
     setError,
     setSuccess,
   };

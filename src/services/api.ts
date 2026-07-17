@@ -121,6 +121,13 @@ export const apiService = {
       body: JSON.stringify(data),
     }),
 
+  // Solo el precio de venta por unidad (pestaña Precios de Facturación).
+  updateProductoPrecioUnitario: (apiFetch: any, id: number, precioUnitario: number | null) =>
+    apiFetch(`${API_URL}/api/productos/${id}/precio-unitario`, {
+      method: 'PUT',
+      body: JSON.stringify({ precioUnitario }),
+    }),
+
   deleteProducto: (apiFetch: any, id: number) =>
     apiFetch(`${API_URL}/api/productos/${id}`, {
       method: 'DELETE',
@@ -224,6 +231,17 @@ export const apiService = {
     data: { nombre?: string; descripcion?: string | null; precioUnitario?: number; esVendible?: boolean }
   ) =>
     apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Solo datos de venta: precio + si se vende (pestaña Precios de Facturación).
+  updateElementoVenta: (
+    apiFetch: any,
+    id: number,
+    data: { precioUnitario: number; esVendible: boolean }
+  ) =>
+    apiFetch(`${process.env.REACT_APP_API_URL}/api/elementos/${id}/venta`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),

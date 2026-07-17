@@ -33,6 +33,14 @@ export const useAdmin = (apiFetch: any) => {
       alTerminar: fetchProductos,
     });
 
+  // Solo el precio de venta por unidad (pestaña Precios de Facturación).
+  const guardarPrecioUnitario = (id: number, precioUnitario: number | null) =>
+    ejecutar(() => apiService.updateProductoPrecioUnitario(apiFetch, id, precioUnitario), {
+      mensajeExito: 'Precio actualizado correctamente',
+      mensajeErrorDefault: 'Error al actualizar el precio',
+      alTerminar: fetchProductos,
+    });
+
   return {
     productos,
     loading,
@@ -42,6 +50,7 @@ export const useAdmin = (apiFetch: any) => {
     createProducto,
     updateProducto,
     deleteProducto,
+    guardarPrecioUnitario,
     setError,
     setSuccess,
   };

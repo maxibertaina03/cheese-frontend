@@ -50,9 +50,14 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
 
   // Contextos que el shell lee para el Header, el Dashboard y facturación.
   const { inventario, historial, productos: productosCtx } = useInventarioContexto();
-  const { unidades, productos, motivos, error, success, fetchProductos } = inventario;
+  const { unidades, productos, motivos, error, success } = inventario;
   const { historialUnidades } = historial;
-  const { loading: loadingProductos, error: errorProductos, success: successProductos, updateProducto } = productosCtx;
+  const {
+    loading: loadingProductos,
+    error: errorProductos,
+    success: successProductos,
+    guardarPrecioUnitario,
+  } = productosCtx;
 
   const elementosCtx = useElementosContexto();
   const {
@@ -61,7 +66,7 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
     error: errorElementos,
     success: successElementos,
     fetchElementos,
-    updateElemento,
+    guardarVenta,
   } = elementosCtx;
 
   const {
@@ -88,20 +93,14 @@ export const AppShell: React.FC<Props> = ({ user, apiFetch, onLogout }) => {
     fetchProveedores();
   }, [fetchProveedores]);
 
-  // Precios (facturación): guardar precio por unidad de un producto y refrescar.
-  // El contenedor de facturación refresca además su stock comercial.
-  const handleSaveProductoPrecio = async (id: number, precioUnitario: number | null) => {
-    const result = await updateProducto(id, { precioUnitario });
-    if (result.success) {
-      await fetchProductos();
-    }
-    return result;
-  };
+  // Precios (facturación): usan endpoints dedicados que solo tocan el precio de
+  // venta, así un usuario con permiso de facturación puede cargarlos sin acceso al
+  // ABM de quesos/elementos. El contenedor de facturación refresca además su stock.
+  const handleSaveProductoPrecio = (id: number, precioUnitario: number | null) =>
+    guardarPrecioUnitario(id, precioUnitario);
 
-  const handleSaveElementoVenta = async (
-    id: number,
-    data: { precioUnitario: number; esVendible: boolean }
-  ) => updateElemento(id, data);
+  const handleSaveElementoVenta = (id: number, data: { precioUnitario: number; esVendible: boolean }) =>
+    guardarVenta(id, data);
 
   const headerStats =
     vistaActual === 'elementos'
